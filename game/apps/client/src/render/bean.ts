@@ -1,10 +1,13 @@
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js'
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { Locomotion, type BeanState } from '@wobblebeans/shared'
-import { assetUrl } from '../assets/load'
-import { outlineMaterial, toonMaterial } from './toon'
+import {
+  Locomotion,
+  clipSlotFor,
+  faceFor,
+  keyBonePose,
+  type BeanState,
+} from '@wobblebeans/shared'
+import { addShake, cueHaptic, flashesOn } from './feel'
+import { clipsReady, sampleSlot, warmupClips, type RigPose } from './retarget'
 
 export interface BeanPalette {
   upper: string
@@ -12,75 +15,129 @@ export interface BeanPalette {
   ink: string
 }
 
-type Pose = Pick<BeanState, 'yaw' | 'vx' | 'vy' | 'vz' | 'locomotion' | 'grounded'> & {
+type PoseState = Pick<BeanState, 'yaw' | 'vx' | 'vy' | 'vz' | 'locomotion' | 'grounded'> & {
   stateTime?: number
+  getUpBack?: boolean
   emoteId?: number
 }
 
-const RIG_URL = 'animations/KayKit_AnimatedCharacter_v1.2.glb'
-const FIT = 1.6 / 1.65
-const PLAY_CLIPS = new Set([
-  'Idle',
-  'Run',
-  'Walk',
-  'Jump',
-  'Roll',
-  'LayingDownIdle',
-  'Defeat',
-  'Hop',
-  'Wave',
-  'Cheer',
-  'Dance',
-])
-
-let rigPromise: Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }> | null = null
-
-function loadRig(): Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }> {
-  if (!rigPromise) {
-    const loader = new GLTFLoader()
-    rigPromise = loader.loadAsync(assetUrl(RIG_URL)).then((gltf) => ({
-      scene: gltf.scene,
-      clips: gltf.animations,
-    }))
-  }
-  return rigPromise
-}
-
 /**
- * Cute bean on the KayKit split rig (Body / Head / arms).
- * Clips from KayKit Character Animations 1.2 are played on that rig.
- * A procedural capsule shows until the rig arrives, and stays if the file fails.
- * Upper costume follows the head and arms. Lower costume follows the body.
- * Neither changes the physics capsule.
+ * Placeholder bean: a 1.6 m capsule split at the waist.
+ * Upper costume hangs off spine_02, lower off the pelvis (doc 03 §3.1).
+ * KayKit and Quaternius clips are retargeted as deltas from their idle pose.
+ * If a clip is missing, the procedural wobble remains.
  */
 export class BeanView {
   readonly group = new THREE.Group()
-  private readonly fit = new THREE.Group()
-  private readonly fallback: THREE.Group
-  private mixer: THREE.AnimationMixer | null = null
-  private readonly actions = new Map<string, THREE.AnimationAction>()
-  private current = ''
-  private clipPlaying = ''
-  private emote = 0
-  private emoteTime = 0
-  private getup = 0
-  private prevGrounded = true
-  private prevLoco = Locomotion.Idle
-  private squash = 1
-  private bob = 0
-  private readonly pupils: THREE.Object3D[] = []
+  private readonly pelvis = new THREE.Group()
+  private readonly spine = new THREE.Group()
+  private readonly spine2 = new THREE.Group()
+  private readonly head = new THREE.Group()
+  private readonly armL = new THREE.Group()
+  private readonly armR = new THREE.Group()
+  private readonly legL = new THREE.Group()
+  private readonly legR = new THREE.Group()
+  private readonly smile: THREE.Mesh
+  private readonly stars: THREE.Sprite
   private readonly label: THREE.Sprite
+  private bob = 0
+  private lean = 0
+  private clipTime = 0
+  private clipId = ''
+  private overlay: { id: string; left: number } | null = null
+  private prev: Locomotion = Locomotion.Idle
+  private prevYaw = 0
+  private scratch = new THREE.Quaternion()
+  private euler = new THREE.Euler()
 
   constructor(palette: BeanPalette, name: string) {
+    warmupClips()
     this.group.name = 'bean-root'
-    this.fit.name = 'bean-fit'
-    this.group.add(this.fit)
-    this.fallback = buildFallback(palette)
-    this.fit.add(this.fallback)
+    this.pelvis.name = 'pelvis'
+    this.pelvis.position.y = 0.8
+    this.group.add(this.pelvis)
+
+    const lowerMat = new THREE.MeshToonMaterial({ color: palette.lower })
+    const upperMat = new THREE.MeshToonMaterial({ color: palette.upper })
+    const inkMat = new THREE.MeshToonMaterial({ color: palette.ink })
+    const white = new THREE.MeshToonMaterial({ color: '#fffdf7' })
+
+    const lower = new THREE.Group()
+    lower.name = 'lowerCostume'
+    this.pelvis.add(lower)
+    lower.add(mesh(new THREE.SphereGeometry(0.48, 18, 14), lowerMat, 0, -0.28, 0))
+    lower.add(mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.34, 18), lowerMat, 0, -0.08, 0))
+
+    this.spine.name = 'spine_01'
+    this.pelvis.add(this.spine)
+    this.spine2.name = 'spine_02'
+    this.spine.add(this.spine2)
+    const upper = new THREE.Group()
+    upper.name = 'upperCostume'
+    this.spine2.add(upper)
+    upper.add(mesh(new THREE.CylinderGeometry(0.48, 0.5, 0.32, 18), upperMat, 0, 0.22, 0))
+    upper.add(mesh(new THREE.SphereGeometry(0.48, 18, 14), upperMat, 0, 0.36, 0))
+
+    this.head.name = 'head'
+    this.head.position.y = 0.42
+    this.spine2.add(this.head)
+    const eyeGeo = new THREE.SphereGeometry(0.09, 12, 10)
+    const pupilGeo = new THREE.SphereGeometry(0.045, 10, 8)
+    for (const side of [-1, 1]) {
+      this.head.add(mesh(eyeGeo, white, 0.16 * side, 0.08, 0.36))
+      this.head.add(mesh(pupilGeo, inkMat, 0.16 * side, 0.07, 0.44))
+    }
+    this.smile = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 8, 14, Math.PI), inkMat)
+    this.smile.position.set(0, -0.06, 0.4)
+    this.smile.rotation.x = Math.PI
+    this.smile.rotation.z = Math.PI
+    this.head.add(this.smile)
+
+    this.armL.name = 'arm_L'
+    this.armR.name = 'arm_R'
+    this.armL.position.set(-0.52, 0.28, 0)
+    this.armR.position.set(0.52, 0.28, 0)
+    this.spine2.add(this.armL, this.armR)
+    const socket = new THREE.Group()
+    socket.name = 'hand_r_socket'
+    socket.position.set(0, -0.42, 0.05)
+    this.armR.add(socket)
+    const armGeo = new THREE.CapsuleGeometry(0.09, 0.28, 4, 8)
+    this.armL.add(mesh(armGeo, upperMat, 0, -0.22, 0))
+    this.armR.add(mesh(armGeo, upperMat, 0, -0.22, 0))
+
+    this.legL.name = 'leg_L'
+    this.legR.name = 'leg_R'
+    this.legL.position.set(-0.18, -0.34, 0)
+    this.legR.position.set(0.18, -0.34, 0)
+    this.pelvis.add(this.legL, this.legR)
+    const legGeo = new THREE.CapsuleGeometry(0.1, 0.22, 4, 8)
+    this.legL.add(mesh(legGeo, lowerMat, 0, -0.2, 0))
+    this.legR.add(mesh(legGeo, lowerMat, 0, -0.2, 0))
+
+    this.stars = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        color: '#ffe56b',
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+    )
+    this.stars.position.set(0, 0.55, 0)
+    this.stars.scale.set(0.7, 0.7, 0.7)
+    this.head.add(this.stars)
+    void loadStar(this.stars)
+
     this.label = makeLabel(name, palette.ink)
-    this.label.position.y = 2.05
+    this.label.position.y = 1.95
     this.group.add(this.label)
-    void this.attachRig(palette)
+    this.group.traverse((obj) => {
+      const meshObj = obj as THREE.Mesh
+      if (meshObj.isMesh) {
+        meshObj.castShadow = true
+        meshObj.receiveShadow = true
+      }
+    })
   }
 
   setName(name: string, ink: string): void {
@@ -91,291 +148,192 @@ export class BeanView {
     mat.needsUpdate = true
   }
 
-  triggerEmote(id: number): void {
-    this.emote = id
-    this.emoteTime = 0
-    const clip = id === 1 ? 'Wave' : id === 2 ? 'Cheer' : id === 3 ? 'Dance' : ''
-    if (clip) this.play(clip, 0.12)
+  /** Remote names stay hidden until Show names is held. The local bean ignores this. */
+  setNameVisible(visible: boolean): void {
+    this.label.visible = visible
   }
 
-  update(feet: THREE.Vector3, state: Pose, dt: number): void {
+  triggerEmote(id: number): void {
+    this.overlay = { id: id === 2 ? 'emote_cheer' : id === 3 ? 'emote_dance' : 'emote_wave', left: 1.6 }
+  }
+
+  /**
+   * `feet` is the visual position (capsule centre minus 0.8 m), already smoothed.
+   */
+  update(feet: THREE.Vector3, state: PoseState, dt: number, showName = true): void {
+    this.noteTransition(state.locomotion)
     this.group.position.copy(feet)
     this.group.rotation.y = state.yaw
-    this.mixer?.update(dt)
-    this.emoteTime += dt
-    if (this.emote && this.emoteTime > 1.6) this.emote = 0
-    if (this.getup > 0) this.getup = Math.max(0, this.getup - dt)
-
-    const landed = state.grounded && !this.prevGrounded
-    const tookOff = !state.grounded && this.prevGrounded
-    this.prevGrounded = state.grounded
-    if (landed) {
-      this.squash = 0.82
-      if (this.prevLoco === Locomotion.Dive || this.prevLoco === Locomotion.DiveSlide) this.getup = 0.42
+    if (!showName) this.label.visible = false
+    const speed = Math.hypot(state.vx, state.vz)
+    this.bob += dt * (4 + speed * 0.8)
+    const slot = this.overlay?.id ?? clipSlotFor(state)
+    if (slot !== this.clipId) {
+      this.clipId = slot
+      this.clipTime = 0
     }
-    if (tookOff) this.squash = 1.16
-    this.prevLoco = state.locomotion
-    const target = 1
-    this.squash += (target - this.squash) * Math.min(1, dt * 8)
-    const stretch = THREE.MathUtils.clamp(state.vy * 0.04, -0.16, 0.2)
-    this.fit.scale.set(FIT * (1 - stretch * 0.35) * (2 - this.squash), FIT * this.squash * (1 + stretch), FIT * (1 - stretch * 0.35))
-
-    if (!this.mixer) {
-      this.bob += dt * 6
-      const swing = Math.sin(this.bob) * 0.4
-      const armL = this.fallback.getObjectByName('arm_L')
-      const armR = this.fallback.getObjectByName('arm_R')
-      if (armL) armL.rotation.x = swing
-      if (armR) armR.rotation.x = -swing
-      void state
-      return
+    this.clipTime += dt
+    if (this.overlay) {
+      this.overlay.left -= dt
+      if (this.overlay.left <= 0) this.overlay = null
     }
-    const busy = Math.hypot(state.vx, state.vz) > 0.5 || !state.grounded || state.locomotion === Locomotion.Dive || state.locomotion === Locomotion.DiveSlide
-    if (busy) this.emote = 0
-    if (this.getup > 0) this.playGetup()
-    else if (this.emote === 1) this.play('Wave', 0.1)
-    else if (this.emote === 2) this.play('Cheer', 0.1)
-    else if (this.emote === 3) this.play('Dance', 0.1)
-    else this.play(clipFor(state.locomotion), 0.18)
 
-    const look = Math.atan2(state.vx, state.vz)
-    for (const pupil of this.pupils) {
-      pupil.position.x = Math.sin(look) * 0.02
-      pupil.position.z = 0.06 + Math.cos(look) * 0.01
+    const pose = clipsReady() ? sampleSlot(this.clipId, this.clipTime) : null
+    if (pose) this.applyClip(pose, state, dt, speed)
+    else this.procedural(state, speed, dt)
+
+    this.applyFace(state.locomotion)
+    this.applyStars(state.locomotion)
+    const turn = Math.atan2(Math.sin(state.yaw - this.prevYaw), Math.cos(state.yaw - this.prevYaw))
+    this.prevYaw = state.yaw
+    if (state.locomotion === Locomotion.Run) {
+      this.spine.rotateZ(THREE.MathUtils.clamp(-turn * 2.2, -0.25, 0.25))
+    }
+    const stretch = THREE.MathUtils.clamp(state.vy * 0.035, -0.18, 0.22)
+    this.group.scale.set(1 - stretch * 0.45, 1 + stretch, 1 - stretch * 0.45)
+    this.prev = state.locomotion
+  }
+
+  private applyClip(pose: RigPose, state: PoseState, dt: number, speed: number): void {
+    const k = 1 - Math.exp(-12 * dt)
+    const tumble = state.locomotion === Locomotion.Ragdoll || state.locomotion === Locomotion.GetUp
+    if (tumble) {
+      const bones = keyBonePose({
+        ...state,
+        px: 0,
+        py: 0,
+        pz: 0,
+        vy: state.vy,
+        grounded: state.grounded,
+        locomotion: state.locomotion,
+        stateTime: state.stateTime ?? 0,
+        getUpBack: state.getUpBack,
+      } as BeanState)
+      this.euler.set(bones.pelvis.pitch, bones.pelvis.yaw, bones.pelvis.roll)
+      this.scratch.setFromEuler(this.euler)
+      this.pelvis.quaternion.slerp(this.scratch, k)
+      this.euler.set(bones.spine02.pitch, bones.spine02.yaw, bones.spine02.roll)
+      this.scratch.setFromEuler(this.euler)
+      this.spine.quaternion.slerp(this.scratch, k)
+      this.euler.set(bones.head.pitch, bones.head.yaw, bones.head.roll)
+      this.scratch.setFromEuler(this.euler)
+      this.head.quaternion.slerp(this.scratch, k)
+    } else {
+      this.pelvis.quaternion.slerp(pose.pelvis, k)
+      this.spine.quaternion.slerp(pose.spine, k)
+      this.head.quaternion.slerp(pose.head, k)
+    }
+    this.armL.quaternion.slerp(pose.armL, k)
+    this.armR.quaternion.slerp(pose.armR, k)
+    if (pose.legs) {
+      this.legL.quaternion.slerp(pose.legL, k)
+      this.legR.quaternion.slerp(pose.legR, k)
+    } else {
+      this.swingLegs(state, speed)
+    }
+    const wobble = Math.sin(this.bob) * Math.min(0.08, speed * 0.012)
+    this.spine.rotateZ(wobble)
+    this.pelvis.position.y = 0.8 + pose.bob
+  }
+
+  private procedural(state: PoseState, speed: number, _dt: number): void {
+    this.pelvis.quaternion.identity()
+    this.spine.quaternion.identity()
+    this.head.quaternion.identity()
+    this.armL.quaternion.identity()
+    this.armR.quaternion.identity()
+    const swing = Math.sin(this.bob) * Math.min(1, speed / 9) * 0.7
+    const diving = state.locomotion === Locomotion.Dive || state.locomotion === Locomotion.DiveSlide
+    const airborne =
+      state.locomotion === Locomotion.Jump || state.locomotion === Locomotion.Fall || state.locomotion === Locomotion.Dive
+    const cheering = state.locomotion === Locomotion.Emote
+    this.armL.rotation.x = diving ? 0.4 : airborne ? -0.8 : swing
+    this.armR.rotation.x = diving ? 0.4 : airborne ? -0.8 : cheering ? -2.2 : -swing
+    this.swingLegs(state, speed)
+    const targetLean = diving ? 1.15 : THREE.MathUtils.clamp(-state.vz * 0.03, -0.25, 0.25)
+    this.lean += (targetLean - this.lean) * 0.35
+    this.spine.rotation.x = this.lean
+    this.pelvis.rotation.z = Math.sin(this.bob * 0.5) * Math.min(0.08, speed * 0.01)
+    if (state.locomotion === Locomotion.Ragdoll || state.locomotion === Locomotion.GetUp) {
+      const bones = keyBonePose({
+        yaw: state.yaw,
+        vx: state.vx,
+        vy: state.vy,
+        vz: state.vz,
+        locomotion: state.locomotion,
+        grounded: state.grounded,
+        stateTime: state.stateTime ?? 0,
+        getUpBack: state.getUpBack,
+      } as BeanState)
+      this.pelvis.rotation.x = bones.pelvis.pitch
+      this.spine.rotation.x = bones.spine02.pitch
+      this.head.rotation.z = bones.head.roll
+    }
+    this.pelvis.position.y = 0.8
+  }
+
+  private swingLegs(state: PoseState, speed: number): void {
+    const swing = Math.sin(this.bob) * Math.min(1, speed / 9) * 0.7
+    const diving = state.locomotion === Locomotion.Dive || state.locomotion === Locomotion.DiveSlide
+    const airborne = state.locomotion === Locomotion.Jump || state.locomotion === Locomotion.Fall
+    this.legL.rotation.set(0, 0, 0)
+    this.legR.rotation.set(0, 0, 0)
+    this.legL.rotation.x = diving ? 0.5 : airborne ? 0.3 : -swing
+    this.legR.rotation.x = diving ? 0.5 : airborne ? -0.2 : swing
+  }
+
+  private applyFace(loco: Locomotion): void {
+    const face = faceFor(loco)
+    const open = face === 'face_surprised' ? 1.25 : face === 'face_dizzy' ? 0.7 : face === 'face_effort' ? 0.85 : 1
+    this.smile.scale.set(1, open, 1)
+  }
+
+  private applyStars(loco: Locomotion): void {
+    const mat = this.stars.material as THREE.SpriteMaterial
+    const on = (loco === Locomotion.Ragdoll || loco === Locomotion.GetUp) && flashesOn()
+    const pulse = 0.55 + Math.sin(this.bob * 2) * 0.2
+    mat.opacity = on ? pulse : 0
+    this.stars.position.y = 0.55 + Math.sin(this.bob) * 0.05
+  }
+
+  private noteTransition(next: Locomotion): void {
+    if (next === this.prev) return
+    if (next === Locomotion.Jump) cueHaptic('light')
+    if (next === Locomotion.Dive) cueHaptic('medium')
+    if (next === Locomotion.Stumble) {
+      cueHaptic('medium')
+      addShake(0.05)
+      this.overlay = { id: 'land_hard', left: 0.35 }
+    }
+    if (next === Locomotion.Ragdoll) {
+      cueHaptic('strong')
+      addShake(0.15)
+    }
+    if (next === Locomotion.GetUp) cueHaptic('light')
+    if (next === Locomotion.Grab) {
+      cueHaptic('medium')
+      this.overlay = { id: 'grab_reach', left: 0.22 }
+    }
+    if (this.prev === Locomotion.Grab && next !== Locomotion.Grab && next !== Locomotion.Climb) {
+      this.overlay = { id: 'grab_throw', left: 0.35 }
+    }
+    if (
+      (this.prev === Locomotion.Fall || this.prev === Locomotion.Jump) &&
+      (next === Locomotion.Idle || next === Locomotion.Run)
+    ) {
+      cueHaptic('light')
+      this.overlay = { id: 'land_soft', left: 0.16 }
+    }
+    if (next === Locomotion.Idle && this.prev === Locomotion.Ragdoll) {
+      this.overlay = { id: 'respawn_pop', left: 0.3 }
     }
   }
-
-  private play(name: string, fade: number): void {
-    if (this.current === name) return
-    const next = this.actions.get(name)
-    if (!next) return
-    const prev = this.actions.get(this.clipPlaying)
-    next.reset().setEffectiveWeight(1).fadeIn(fade).play()
-    prev?.fadeOut(fade)
-    this.current = name
-    this.clipPlaying = name
-  }
-
-  /** Defeat rises off the floor in its last third. That slice is the get-up. */
-  private playGetup(): void {
-    if (this.current === 'Getup') return
-    const next = this.actions.get('Defeat')
-    if (!next) return
-    const prev = this.actions.get(this.clipPlaying)
-    next.reset()
-    next.time = 0.58
-    next.setEffectiveWeight(1).fadeIn(0.08).play()
-    prev?.fadeOut(0.08)
-    this.current = 'Getup'
-    this.clipPlaying = 'Defeat'
-  }
-
-  private async attachRig(palette: BeanPalette): Promise<void> {
-    try {
-      const source = await loadRig()
-      const rig = cloneSkinned(source.scene) as THREE.Object3D
-      const host = rig.getObjectByProperty('type', 'SkinnedMesh') as THREE.SkinnedMesh | undefined
-      if (!host?.parent) throw new Error('rig has no skinned mesh')
-      host.visible = false
-      const parts = beanGeometry()
-      const pelvis = new THREE.Group()
-      pelvis.name = 'pelvis'
-      const spine = new THREE.Group()
-      spine.name = 'spine_02'
-      host.parent.add(pelvis)
-      pelvis.add(spine)
-      const wear = (geo: THREE.BufferGeometry, color: string, parent: THREE.Object3D) => {
-        const mesh = new THREE.SkinnedMesh(geo, toonMaterial(color))
-        mesh.castShadow = true
-        mesh.receiveShadow = true
-        mesh.frustumCulled = false
-        mesh.bind(host.skeleton, host.bindMatrix)
-        parent.add(mesh)
-        return mesh
-      }
-      wear(parts.lower, palette.lower, pelvis)
-      wear(parts.upper, palette.upper, spine)
-      const shell = new THREE.SkinnedMesh(parts.shell, outlineMaterial(palette.ink))
-      shell.name = 'outline'
-      shell.scale.setScalar(1.045)
-      shell.castShadow = false
-      shell.frustumCulled = false
-      shell.bind(host.skeleton, host.bindMatrix)
-      host.parent.add(shell)
-      const head = rig.getObjectByName('Head')
-      if (head) {
-        addFace(head, palette, this.pupils, { y: 0.56, z: 0.34, spread: 0.14, eye: 0.1 })
-        addSprout(head, palette)
-      }
-      this.mixer = new THREE.AnimationMixer(rig)
-      for (const clip of source.clips) {
-        if (!PLAY_CLIPS.has(clip.name)) continue
-        const action = this.mixer.clipAction(clip)
-        const loop = clip.name === 'Idle' || clip.name === 'Run' || clip.name === 'Walk' || clip.name === 'Dance' || clip.name === 'Wave' || clip.name === 'Cheer'
-        if (loop) action.setLoop(THREE.LoopRepeat, Infinity)
-        else {
-          action.setLoop(THREE.LoopOnce, 1)
-          action.clampWhenFinished = true
-        }
-        this.actions.set(clip.name, action)
-      }
-      this.play('Idle', 0)
-      this.fit.add(rig)
-      this.fallback.visible = false
-    } catch (err) {
-      console.warn('bean rig skipped', err)
-    }
-  }
 }
 
-/**
- * Rounded bean in the KayKit bind pose. Body bone drives the belly and feet.
- * Head bone drives the top. Arm bones drive the sleeves. The stock Pete mesh
- * is not drawn.
- */
-function beanGeometry(): { upper: THREE.BufferGeometry; lower: THREE.BufferGeometry; shell: THREE.BufferGeometry } {
-  const lowerParts = [
-    stamp(shapedSphere(0.5, 0.78, 0.9, 0, 0.5, 0), 0),
-    stamp(shapedSphere(0.17, 0.5, 1.25, -0.2, 0.1, 0.08), 0),
-    stamp(shapedSphere(0.17, 0.5, 1.25, 0.2, 0.1, 0.08), 0),
-  ]
-  const upperParts = [
-    stamp(shapedSphere(0.44, 0.92, 0.86, 0, 0.96, 0.02), 1),
-    stamp(shapedSphere(0.4, 0.92, 0.9, 0, 1.28, 0.04), 1),
-    stamp(capsuleBetween(new THREE.Vector3(0.34, 1.02, 0.02), new THREE.Vector3(0.58, 0.36, 0.06), 0.11), 2),
-    stamp(capsuleBetween(new THREE.Vector3(-0.34, 1.02, 0.02), new THREE.Vector3(-0.58, 0.36, 0.06), 0.11), 4),
-    stamp(new THREE.SphereGeometry(0.14, 12, 10).translate(0.6, 0.28, 0.08), 2),
-    stamp(new THREE.SphereGeometry(0.14, 12, 10).translate(-0.6, 0.28, 0.08), 4),
-  ]
-  const lower = mergeGeometries(lowerParts, false)
-  const upper = mergeGeometries(upperParts, false)
-  const shell = mergeGeometries([...lowerParts, ...upperParts].map((geo) => geo.clone()), false)
-  if (!lower || !upper || !shell) throw new Error('bean geometry failed')
-  lower.computeVertexNormals()
-  upper.computeVertexNormals()
-  shell.computeVertexNormals()
-  return { upper, lower, shell }
-}
-
-function shapedSphere(radius: number, sy: number, sz: number, x: number, y: number, z: number): THREE.BufferGeometry {
-  const geo = new THREE.SphereGeometry(radius, 22, 16)
-  geo.scale(1, sy, sz)
-  geo.translate(x, y, z)
-  return geo
-}
-
-function capsuleBetween(a: THREE.Vector3, b: THREE.Vector3, radius: number): THREE.BufferGeometry {
-  const length = Math.max(0.05, a.distanceTo(b) - radius * 2)
-  const geo = new THREE.CapsuleGeometry(radius, length, 5, 10)
-  const mid = a.clone().add(b).multiplyScalar(0.5)
-  const dir = b.clone().sub(a).normalize()
-  geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir))
-  geo.translate(mid.x, mid.y, mid.z)
-  return geo
-}
-
-function stamp(geo: THREE.BufferGeometry, bone: number): THREE.BufferGeometry {
-  const count = geo.getAttribute('position').count
-  const skinIndex = new Uint16Array(count * 4)
-  const skinWeight = new Float32Array(count * 4)
-  for (let i = 0; i < count; i++) {
-    skinIndex[i * 4] = bone
-    skinWeight[i * 4] = 1
-  }
-  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4))
-  geo.setAttribute('skinWeight', new THREE.BufferAttribute(skinWeight, 4))
-  return geo
-}
-
-function clipFor(locomotion: Locomotion): string {
-  if (locomotion === Locomotion.Run) return 'Run'
-  if (locomotion === Locomotion.Jump) return 'Jump'
-  if (locomotion === Locomotion.Fall) return 'Jump'
-  if (locomotion === Locomotion.Dive) return 'Roll'
-  if (locomotion === Locomotion.DiveSlide) return 'LayingDownIdle'
-  return 'Idle'
-}
-
-function buildFallback(palette: BeanPalette): THREE.Group {
-  const root = new THREE.Group()
-  root.name = 'fallback-bean'
-  const upper = toonMaterial(palette.upper)
-  const lower = toonMaterial(palette.lower)
-  const ink = toonMaterial(palette.ink)
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.48, 0.55, 8, 16), upper)
-  body.position.y = 0.85
-  body.castShadow = true
-  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 16), lower)
-  belly.position.y = 0.55
-  belly.scale.y = 0.72
-  const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.55, 6, 12), outlineMaterial())
-  hull.position.y = 0.85
-  hull.scale.setScalar(1.04)
-  root.add(hull, belly, body)
-  const armGeo = new THREE.CapsuleGeometry(0.09, 0.28, 4, 8)
-  const armL = new THREE.Mesh(armGeo, upper)
-  armL.name = 'arm_L'
-  armL.position.set(-0.52, 1.05, 0)
-  const armR = armL.clone()
-  armR.name = 'arm_R'
-  armR.position.x = 0.52
-  root.add(armL, armR)
-  addFace(root, palette, [], { y: 1.32, z: 0.42, spread: 0.16, eye: 0.1 })
-  void ink
-  return root
-}
-
-function addSprout(head: THREE.Object3D, palette: BeanPalette): void {
-  const leaf = toonMaterial('#3dbb6b')
-  const stem = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.16, 3, 6), leaf)
-  stem.position.set(0, 1.02, -0.1)
-  const left = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), leaf)
-  left.position.set(-0.08, 1.12, -0.08)
-  left.scale.set(1.15, 0.55, 0.75)
-  left.rotation.z = 0.7
-  const right = left.clone()
-  right.position.x = 0.08
-  right.rotation.z = -0.7
-  const badge = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), toonMaterial('#fffdf7'))
-  badge.scale.set(1.2, 1.2, 0.45)
-  badge.position.set(0, 0.48, -0.34)
-  const pip = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), toonMaterial(palette.upper))
-  pip.position.set(0, 0.48, -0.4)
-  head.add(stem, left, right, badge, pip)
-}
-
-function addFace(
-  parent: THREE.Object3D,
-  palette: BeanPalette,
-  pupils: THREE.Object3D[],
-  place: { y: number; z: number; spread: number; eye: number },
-): void {
-  const white = toonMaterial('#fffdf7')
-  const ink = toonMaterial(palette.ink)
-  const blushMat = toonMaterial('#e8336b')
-  blushMat.transparent = true
-  blushMat.opacity = 0.55
-  for (const side of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(place.eye, 16, 12), white)
-    eye.position.set(place.spread * side, place.y, place.z)
-    eye.scale.set(1.15, 1.28, 0.55)
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(place.eye * 0.48, 12, 8), ink)
-    pupil.position.set(0, -0.01, place.eye * 0.7)
-    const catchlight = new THREE.Mesh(new THREE.SphereGeometry(place.eye * 0.18, 8, 6), white)
-    catchlight.position.set(place.eye * 0.2, place.eye * 0.22, place.eye * 0.85)
-    eye.add(pupil, catchlight)
-    parent.add(eye)
-    pupils.push(pupil)
-    const blush = new THREE.Mesh(new THREE.SphereGeometry(place.eye * 0.55, 10, 8), blushMat)
-    blush.position.set(place.spread * 1.7 * side, place.y - place.eye * 1.3, place.z - 0.02)
-    blush.scale.set(1.3, 0.7, 0.4)
-    parent.add(blush)
-  }
-  const smile = new THREE.Mesh(new THREE.TorusGeometry(place.eye, place.eye * 0.2, 8, 14, Math.PI), ink)
-  smile.position.set(0, place.y - place.eye * 1.7, place.z + 0.02)
-  smile.rotation.x = Math.PI
-  smile.rotation.z = Math.PI
-  parent.add(smile)
+function mesh(geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number): THREE.Mesh {
+  const m = new THREE.Mesh(geo, mat)
+  m.position.set(x, y, z)
+  return m
 }
 
 function makeLabel(name: string, ink: string): THREE.Sprite {
@@ -417,4 +375,16 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.arcTo(x, y + h, x, y, r)
   ctx.arcTo(x, y, x + w, y, r)
   ctx.closePath()
+}
+
+async function loadStar(sprite: THREE.Sprite): Promise<void> {
+  try {
+    const tex = await new THREE.TextureLoader().loadAsync('/assets/vfx/star_06.png')
+    tex.colorSpace = THREE.SRGBColorSpace
+    const mat = sprite.material as THREE.SpriteMaterial
+    mat.map = tex
+    mat.needsUpdate = true
+  } catch {
+    // Stars stay a tinted sprite if the texture is missing.
+  }
 }

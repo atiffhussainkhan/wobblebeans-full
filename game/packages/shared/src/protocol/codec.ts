@@ -61,6 +61,8 @@ export interface SnapBean {
   finished: boolean
   airDiveUsed: boolean
   onMover: boolean
+  /** Snapshot flag bit 4. Absent on older snapshots means false. */
+  getUpBack?: boolean
   coyote: number
   jumpBuffer: number
   diveBuffer: number
@@ -180,6 +182,7 @@ export function encodeInput(frames: InputFrame[]): Uint8Array {
     let buttons = 0
     if (f.jump) buttons |= 1
     if (f.dive) buttons |= 2
+    if (f.grab) buttons |= 4
     v.setUint8(o + 8, buttons)
     v.setUint16(o + 9, encYaw(f.camYaw), true)
     v.setUint8(o + 11, f.quickChat & 0xff)
@@ -211,6 +214,7 @@ export function encodeSnapshot(msg: Omit<SnapshotMsg, 'type'>): Uint8Array {
     if (bean.finished) flags |= 2
     if (bean.airDiveUsed) flags |= 4
     if (bean.onMover) flags |= 8
+    if (bean.getUpBack) flags |= 16
     v.setUint8(o + 16, flags)
     v.setUint8(o + 17, encTime(bean.coyote))
     v.setUint8(o + 18, encTime(bean.jumpBuffer))
@@ -273,6 +277,7 @@ export function decodeClient(buf: Uint8Array): ClientMsg {
         moveZ: v.getInt8(o + 7) / 127,
         jump: (buttons & 1) !== 0,
         dive: (buttons & 2) !== 0,
+        grab: (buttons & 4) !== 0,
         camYaw: decYaw(v.getUint16(o + 9, true)),
         quickChat: v.getUint8(o + 11),
         emote: v.getUint8(o + 12),
@@ -346,6 +351,7 @@ export function decodeServer(buf: Uint8Array): ServerMsg {
         finished: (flags & 2) !== 0,
         airDiveUsed: (flags & 4) !== 0,
         onMover: (flags & 8) !== 0,
+        getUpBack: (flags & 16) !== 0,
         coyote: decTime(v.getUint8(o + 17)),
         jumpBuffer: decTime(v.getUint8(o + 18)),
         diveBuffer: decTime(v.getUint8(o + 19)),
@@ -386,6 +392,7 @@ export function beanToSnap(
     finished: state.finished,
     airDiveUsed: state.airDiveUsed,
     onMover: state.onMover,
+    getUpBack: state.getUpBack === true,
     coyote: state.coyote,
     jumpBuffer: state.jumpBuffer,
     diveBuffer: state.diveBuffer,

@@ -11,7 +11,6 @@ import {
   encodeWelcome,
   physicsHash,
 } from '@wobblebeans/shared'
-import { createLiveGauntlet } from './flow/live-gauntlet'
 import { Show } from './show'
 
 export interface RunningServer {
@@ -23,8 +22,6 @@ export interface RunningServer {
 export async function startShowServer(port: number = NET.devServerPort): Promise<RunningServer> {
   const world = await BeanWorld.create()
   const show = new Show(world)
-  // Vitest drives inputs on the first ticks. The countdown stays on `pnpm dev`.
-  if (!process.env.VITEST) show.flow = createLiveGauntlet()
   const hash = physicsHash()
   const sockets = new Map<WebSocket, number>()
 

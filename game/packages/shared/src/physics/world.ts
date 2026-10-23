@@ -1,5 +1,7 @@
 import { FOUNDATION_COURSE, inFinish, moverOffset, type CourseBox, type CourseDef } from '../course/foundation-gauntlet'
 import { CAPSULE_CENTER, PHYSICS, feetY } from './constants'
+import { resolveBumps } from '../character/bumps'
+import { clearForRespawn } from '../character/state'
 import { makeBean, stepKinematics } from './integrate'
 import { quatFromXRotation } from './math'
 import {
@@ -43,6 +45,11 @@ interface MoverSlot extends BodySlot {
 export class BeanWorld {
   readonly course: CourseDef
   tick = 0
+  /**
+   * Predicting clients set this false so a grabbed pose stays on the
+   * snapshot instead of being simulated without the other bean (D-04).
+   */
+  authoritative = true
   private readonly R: RapierApi
   private readonly world: InstanceType<RapierApi['World']>
   private readonly controller: InstanceType<RapierApi['KinematicCharacterController']>
@@ -136,6 +143,7 @@ export class BeanWorld {
   step(inputs: ReadonlyMap<number, InputFrame>): void {
     this.tick += 1
     this.syncMovers()
+    if (this.authoritative) resolveBumps(this.states)
     const ids = [...this.states.keys()].sort((a, b) => a - b)
     for (const id of ids) {
       const state = this.states.get(id)
@@ -152,6 +160,7 @@ export class BeanWorld {
         camYaw: state.yaw,
         quickChat: 0,
         emote: 0,
+        grab: false,
       }
       const surface = this.surfaceFor(state)
       this.controller.enableSnapToGround(state.vy > 0.2 ? 0 : 0.28)
@@ -160,7 +169,7 @@ export class BeanWorld {
         const m = this.controller.computedMovement()
         const grounded = this.controller.computedGrounded()
         return { movedX: m.x, movedY: m.y, movedZ: m.z, grounded }
-      }, surface)
+      }, surface, { course: this.course, peers: this.states, authoritative: this.authoritative })
       slot.body.setNextKinematicTranslation({ x: state.px, y: state.py, z: state.pz })
       this.noteMoverContact(state)
       this.noteFinish(state)
@@ -253,6 +262,7 @@ export class BeanWorld {
     state.grounded = true
     state.onMover = false
     state.airDiveUsed = false
+    clearForRespawn(state)
     const slot = this.beans.get(state.id)
     slot?.body.setTranslation({ x: state.px, y: state.py, z: state.pz }, true)
     slot?.body.setNextKinematicTranslation({ x: state.px, y: state.py, z: state.pz })

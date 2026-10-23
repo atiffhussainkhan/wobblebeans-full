@@ -3,11 +3,10 @@ import {
   AUDIO,
   BeanWorld,
   CAPSULE_CENTER,
-  EventKind,
   Locomotion,
   NET,
+  locomotionName,
   PredictedBean,
-  RoundStateCode,
   colourForSlot,
   decodeServer,
   encodeHello,
@@ -19,16 +18,11 @@ import {
   type InputFrame,
   type SnapBean,
 } from '@wobblebeans/shared'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import './style.css'
 import { loadManifest } from './assets/load'
 import { InputDevice } from './input'
 import { BeanView } from './render/bean'
 import { CourseView, loadSky } from './render/course'
-import { PartyVfx } from './render/vfx'
 
 const statusEl = document.querySelector<HTMLElement>('#status')!
 const netEl = document.querySelector<HTMLElement>('#net')!
@@ -37,7 +31,6 @@ const bannerEl = document.querySelector<HTMLElement>('#banner')!
 const bubbleEl = document.querySelector<HTMLElement>('#bubble')!
 const meEl = document.querySelector<HTMLElement>('#me')!
 const errorEl = document.querySelector<HTMLElement>('#error')!
-const announceEl = document.querySelector<HTMLElement>('#announce')!
 const canvas = document.querySelector<HTMLCanvasElement>('#view')!
 
 const serverUrl =
@@ -68,60 +61,31 @@ let sawSnapshot = false
 
 const offset = new THREE.Vector3()
 const feet = new THREE.Vector3()
-const look = new THREE.Vector3()
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.outputColorSpace = THREE.SRGBColorSpace
-renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.toneMappingExposure = 1.08
 
 const scene = new THREE.Scene()
-scene.background = new THREE.Color('#c5e8fb')
-scene.fog = new THREE.Fog('#c5e8fb', 36, 92)
+scene.background = new THREE.Color('#BFE6FF')
+scene.fog = new THREE.Fog('#BFE6FF', 28, 78)
 
-const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 220)
-scene.add(new THREE.HemisphereLight('#fff6e4', '#6b4a3a', 0.95))
-const sun = new THREE.DirectionalLight('#fff4e2', 2.45)
-sun.position.set(16, 28, 10)
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200)
+scene.add(new THREE.HemisphereLight('#fff4dd', '#6B4A3A', 1.1))
+const sun = new THREE.DirectionalLight('#fff7e8', 2.1)
+sun.position.set(12, 22, 8)
 sun.castShadow = true
-sun.shadow.mapSize.set(1024, 1024)
-sun.shadow.camera.near = 2
-sun.shadow.camera.far = 70
-sun.shadow.camera.left = -24
-sun.shadow.camera.right = 24
-sun.shadow.camera.top = 24
-sun.shadow.camera.bottom = -24
-sun.shadow.bias = -0.0004
+sun.shadow.mapSize.set(2048, 2048)
+sun.shadow.camera.near = 1
+sun.shadow.camera.far = 60
+sun.shadow.camera.left = -20
+sun.shadow.camera.right = 20
+sun.shadow.camera.top = 20
+sun.shadow.camera.bottom = -20
 scene.add(sun)
-const rim = new THREE.DirectionalLight('#9adfff', 0.7)
-rim.position.set(-14, 10, -8)
-scene.add(rim)
-
-const gl = renderer.getContext()
-const gpuInfo = gl.getExtension('WEBGL_debug_renderer_info')
-const gpuName = gpuInfo ? gl.getParameter(gpuInfo.UNMASKED_RENDERER_WEBGL) : ''
-const softwareGpu = /SwiftShader|llvmpipe|softpipe/i.test(String(gpuName))
-if (softwareGpu) {
-  renderer.shadowMap.enabled = false
-  sun.castShadow = false
-}
-
-const composer = new EffectComposer(renderer)
-composer.addPass(new RenderPass(scene, camera))
-const bloom = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
-  0.18,
-  0.55,
-  0.86,
-)
-if (!softwareGpu) composer.addPass(bloom)
-composer.addPass(new OutputPass())
-const vfx = new PartyVfx()
-scene.add(vfx.points)
 
 const course = new CourseView()
 scene.add(course.group)
@@ -136,7 +100,6 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
-  composer.setSize(window.innerWidth, window.innerHeight)
 })
 
 connect()
@@ -198,6 +161,7 @@ async function onWelcome(
   world?.destroy()
   world = await BeanWorld.create()
   world.spawn(playerId, spawnIndex)
+  world.authoritative = false
   world.tick = serverTick
   predicted = new PredictedBean(world, playerId)
   myId = playerId
@@ -256,14 +220,7 @@ function onSnapshot(serverTick: number, ackSeq: number, beans: SnapBean[]): void
   }
 }
 
-let countdownUntil = 0
-let celebrated = false
-
 function onEvent(kind: number, subjectId: number, code: number): void {
-  if (kind === EventKind.RoundState) {
-    showRound(code)
-    return
-  }
   if (kind === 1) {
     const text = quickChatText(code)
     if (!text) return
@@ -294,6 +251,7 @@ function frame(now: number): void {
       moveZ: sample.moveZ,
       jump: sample.jump,
       dive: sample.dive,
+      grab: sample.grab,
       camYaw: sample.camYaw,
       quickChat: sample.quickChat,
       emote: sample.emote,
@@ -320,18 +278,14 @@ function frame(now: number): void {
   if (predicted && localView) {
     const state = predicted.state
     feet.set(state.px + offset.x, state.py - CAPSULE_CENTER + offset.y, state.pz + offset.z)
+    keys.noteLocomotion(state.locomotion)
     localView.update(feet, state, dt)
     const speed = Math.hypot(state.vx, state.vz)
-    if (state.locomotion === Locomotion.Run && state.grounded && speed > 2 && Math.random() < 0.18) {
-      vfx.dust(feet.x, feet.y, feet.z)
-      void AUDIO.land
+    if (state.locomotion === Locomotion.Run && state.grounded) {
+      /* footstep hook for workstream 6: AUDIO is referenced so the id stays in the build */
+      void speed
     }
-    if (state.locomotion === Locomotion.Dive && Math.random() < 0.25) vfx.splash(feet.x, feet.y, feet.z)
-    if (state.finished && !celebrated) {
-      celebrated = true
-      vfx.confetti(feet.x, feet.y, feet.z)
-    }
-    aimCamera(feet, state, dt)
+    aimCamera(feet, dt)
   } else {
     camera.position.set(0, 6, -8)
     camera.lookAt(0, 1, 6)
@@ -341,7 +295,7 @@ function frame(now: number): void {
   for (const ghost of ghosts.values()) {
     const pose = sampleGhost(ghost, renderNow)
     const gfeet = new THREE.Vector3(pose.px, pose.py - CAPSULE_CENTER, pose.pz)
-    ghost.view.update(gfeet, pose, dt)
+    ghost.view.update(gfeet, pose, dt, keys.namesHeld)
   }
 
   if (bubbleUntil && renderNow > bubbleUntil) {
@@ -352,68 +306,13 @@ function frame(now: number): void {
     pingSentAt = renderNow
     socket.send(encodePing(renderNow))
   }
-  if (countdownUntil) tickCountdown(renderNow)
-  vfx.update(dt)
-  if (softwareGpu) renderer.render(scene, camera)
-  else composer.render()
+
+  renderer.render(scene, camera)
 }
 
-const camPos = new THREE.Vector3(0, 6, -8)
-const camLook = new THREE.Vector3(0, 1, 6)
-let camReady = false
-
-function aimCamera(targetFeet: THREE.Vector3, state: { vx: number; vz: number }, dt: number): void {
-  const yaw = keys.camYaw
-  const pitch = keys.camPitch
-  const dist = 9.1
-  const ahead = 1.6
-  look.set(
-    targetFeet.x + Math.sin(yaw) * ahead + state.vx * 0.08,
-    targetFeet.y + 1.25,
-    targetFeet.z + Math.cos(yaw) * ahead + state.vz * 0.08,
-  )
-  const horiz = dist * Math.cos(pitch)
-  const desired = new THREE.Vector3(
-    look.x - Math.sin(yaw) * horiz,
-    look.y + dist * Math.sin(pitch) + 0.4,
-    look.z - Math.cos(yaw) * horiz,
-  )
-  if (!camReady) {
-    camPos.copy(desired)
-    camLook.copy(look)
-    camReady = true
-  }
-  const k = 1 - Math.exp(-dt * 5.5)
-  camPos.lerp(desired, k)
-  camLook.lerp(look, k)
-  camera.position.copy(camPos)
-  camera.lookAt(camLook)
-}
-
-function showRound(code: number): void {
-  announceEl.hidden = false
-  if (code === RoundStateCode.RoundIntro) announceEl.textContent = 'Get ready'
-  else if (code === RoundStateCode.Countdown) {
-    countdownUntil = performance.now() + 3000
-    announceEl.textContent = '3'
-  } else if (code === RoundStateCode.Go || code === RoundStateCode.Play) {
-    countdownUntil = 0
-    announceEl.textContent = 'GO!'
-    window.setTimeout(() => {
-      if (announceEl.textContent === 'GO!') announceEl.hidden = true
-    }, 700)
-  } else if (code === RoundStateCode.Outcome) announceEl.textContent = 'Nice run!'
-}
-
-function tickCountdown(now: number): void {
-  const left = countdownUntil - now
-  if (left <= 0) {
-    countdownUntil = 0
-    return
-  }
-  const n = Math.ceil(left / 1000)
-  announceEl.hidden = false
-  announceEl.textContent = String(Math.min(3, Math.max(1, n)))
+function aimCamera(targetFeet: THREE.Vector3, dt: number): void {
+  const state = predicted?.state
+  keys.aim(camera, targetFeet.x, targetFeet.y, targetFeet.z, state?.vx ?? 0, state?.vz ?? 0, dt)
 }
 
 function sampleGhost(ghost: Ghost, now: number): SnapBean {
@@ -445,7 +344,7 @@ function renderRoster(beans: SnapBean[]): void {
     .map((b) => {
       const colour = colourForSlot(b.colourIndex).upper
       const name = b.id === myId ? `${formatDisplayName(b.adj, b.noun, b.num)} (you)` : formatDisplayName(b.adj, b.noun, b.num)
-      return `<div class="row"><span class="swatch" style="background:${colour}"></span>${name}</div>`
+      return `<div class="row"><span class="swatch" style="background:${colour}"></span>${name} · ${locomotionName(b.locomotion)}</div>`
     })
     .join('')
   const count = beans.length

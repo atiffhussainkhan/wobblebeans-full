@@ -1,6 +1,6 @@
 # Wobblebeans
 
-Wobblebeans is an original online party game for kids aged 6–12: wobbly beans, elimination shows, and obstacle courses. This repository is a server-authoritative browser game. The bean is an original rounded character on a KayKit rig, with toon shading, and `pnpm dev` runs a playable gauntlet show.
+Wobblebeans is an original online party game for kids aged 6–12: wobbly beans, elimination shows, and obstacle courses. This repository is the production foundation. It is a server-authoritative browser game, not a throwaway prototype and not a Unity project.
 
 The engine decision is recorded in [docs/ADR-001-engine.md](docs/ADR-001-engine.md). The master design is [docs/design/Wobblebeans_Master_Design_v1.docx](docs/design/Wobblebeans_Master_Design_v1.docx). How the other nine developers split the rest of that design is [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md).
 
@@ -16,7 +16,7 @@ pnpm dev
 - Game: http://127.0.0.1:47220
 - Show server (HTTP health and WebSocket): http://127.0.0.1:47221 and `ws://127.0.0.1:47221`
 
-Open the game in two browser tabs. Each tab is a bean on the same server. Move in one tab and the other tab shows that bean move. WASD moves, Space jumps, Shift dives, drag or Q and E looks around. Keys 1–6 send a preset hello. There is no text box.
+Open the game in two browser tabs. Each tab is a bean on the same server. Move in one tab and the other tab shows that bean move. WASD moves, Space jumps, Ctrl dives, Shift grabs, drag or Q and E looks around. Keys 1–3 play emotes. Q sends a preset hello. There is no text box. The roster shows each bean's movement state from the server.
 
 `pnpm dev` starts the show server and the Vite client together. The client port is 47220 and the server port is 47221 so they stay off the usual dev ports.
 
@@ -32,7 +32,7 @@ That runs lint, typecheck, unit tests, and the child-safety scan. CI does the sa
 
 - `packages/shared` — physics constants, the kinematic step, Rapier world, the gauntlet course, binary protocol, net rates, prediction helper, generated names, safety flags, audio event ids.
 - `apps/server` — one authoritative show. Clients send inputs at 25 Hz. The server simulates at 50 Hz and broadcasts snapshots at 20 Hz nearby and 10 Hz far.
-- `apps/client` — Three.js view, prediction of your own bean, interpolation of everyone else. The bean is a rounded costume mesh skinned to the KayKit rig (idle, run, jump, dive, get-up, wave, cheer, dance). Toon shading, outlines, soft shadows, and a half-resolution bloom. A software GPU skips shadows and bloom so the same scene still runs.
+- `apps/client` — Three.js view, prediction of your own bean, interpolation of everyone else. The bean is a procedural capsule on the split top/bottom rig until character animation lands.
 - `packages/backend-services` — in-memory stubs. Parent contact data and birth year live only in `ParentAccountStore`.
 - `assets/` — the CC0 Kenney, KayKit, and Quaternius picks, plus `assets/licenses/` and `assets/manifest.json`.
 - `tools/generate-manifest.mjs` — rebuilds the manifest and checks the local files named in `docs/design/ASSET_SELECTION.md`.
@@ -55,7 +55,7 @@ These are product rules, enforced in `packages/shared/src/safety/rules.ts` and i
 
 ## Assets
 
-Art that the game draws is listed in `assets/manifest.json` under `used`, with the Image-repo release zip and the CC0 licence. Kenney props, the day sky, UI icons, and particles come from `shorepine-kenney.zip`. The bean skeleton and clips come from KayKit Character Animations 1.2. The Prototype Pete mesh is not drawn. Quaternius characters were reviewed and not used. The private `animation` repo is sprite sheets and is not used. Licences are in `assets/licenses/`. Do not add third-party IP.
+Art is CC0 from Kenney, KayKit, and Quaternius. Licences are in `assets/licenses/`. The client serves the tree at `/assets` through `apps/client/public/assets`. Load models with `loadGltf`, `loadTexture`, and `loadManifest` in `apps/client/src/assets/load.ts`. Do not add third-party IP. Procedural meshes and colours from the art doc are fine.
 
 ## Layout
 
