@@ -1,0 +1,248 @@
+:root {
+  color: #1f2140;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: #1f2140;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#view {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, 240px);
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+}
+
+.panel {
+  background: #fffdf7;
+  border: 3px solid #1f2140;
+  border-radius: 18px;
+  box-shadow: 0 5px 0 #1f2140;
+}
+
+.brand-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: -0.04em;
+  color: #e8336b;
+}
+
+#announce {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: clamp(64px, 10vw, 112px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #fffdf7;
+  -webkit-text-stroke: 8px #1f2140;
+  paint-order: stroke fill;
+  text-shadow: 0 8px 0 #1f2140;
+  pointer-events: none;
+}
+
+.brand img { image-rendering: pixelated; filter: invert(13%) sepia(18%) saturate(1800%) hue-rotate(200deg); }
+
+#status {
+  margin: 0;
+  flex: 1;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+#net {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+#roster {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(60vh, 480px);
+  overflow: auto;
+}
+
+#roster h2 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #1f2140;
+  flex: none;
+}
+
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  padding: 14px 22px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #1f2140;
+  background: #22c3e6;
+}
+
+.bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 110px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  font-weight: 800;
+  background: #ffd93b;
+}
+
+.controls {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+.controls p { margin: 0; line-height: 1.35; }
+
+.controls img { filter: invert(13%) sepia(20%) saturate(1400%) hue-rotate(200deg); }
+
+#me { margin-left: auto; font-weight: 800; }
+
+#touch {
+  display: none;
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 92px;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+#stick {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 253, 247, 0.72);
+  border: 3px solid #1f2140;
+  position: relative;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#knob {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e8336b;
+  border: 3px solid #1f2140;
+  position: absolute;
+  left: 34px;
+  top: 34px;
+}
+
+#touch-actions {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+#touch-actions button {
+  width: 92px;
+  height: 92px;
+  border-radius: 24px;
+  border: 3px solid #1f2140;
+  background: #ffb627;
+  box-shadow: 0 5px 0 #1f2140;
+  font: 800 18px "Trebuchet MS", sans-serif;
+  color: #1f2140;
+}
+
+#btn-dive { background: #9be15d; }
+
+.error {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  padding: 18px 20px;
+  max-width: 420px;
+  background: #fffdf7;
+  font-weight: 700;
+}
+
+@media (max-width: 820px), (pointer: coarse) {
+  #hud {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    padding: 10px;
+  }
+
+  .brand { font-size: 22px; }
+  #status { font-size: 15px; }
+
+  #roster {
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+  }
+
+  #roster h2 { width: 100%; }
+
+  .controls { font-size: 14px; }
+  .controls p:first-of-type { display: none; }
+
+  #touch { display: flex; }
+}

@@ -1,0 +1,53 @@
+export const MS = {
+  second: 1000,
+  minute: 60_000,
+  hour: 3_600_000,
+  day: 86_400_000,
+} as const
+
+/**
+ * Policy timings from doc 09 and doc 08.
+ * A year is 365 days here. Counsel confirms the legal-hold and consent clocks.
+ */
+export const POLICY = {
+  maxChildren: 4,
+  minChildAge: 0,
+  maxChildAge: 17,
+  breakReminderDefault: 60,
+  breakReminderMin: 30,
+  breakReminderMax: 120,
+  dailyLimitDefault: 60,
+  dailyLimitMin: 30,
+  dailyLimitMax: 180,
+  parentGateFails: 3,
+  parentGateLockMs: 5 * MS.minute,
+  parentGateAnswerMin: 21,
+  parentGateAnswerMax: 99,
+  gateChallengeMs: 10 * MS.minute,
+  gatePassMs: 10 * MS.minute,
+  sessionMs: 30 * MS.minute,
+  friendCodeMs: 10 * MS.minute,
+  friendCodeAttempts: 5,
+  friendCodeWindowMs: 10 * MS.minute,
+  friendRequestMs: 14 * MS.day,
+  quickChatHoldMs: 5 * MS.minute,
+  levelHideReports: 3,
+  reportVolumePerHour: 10,
+  exportMs: 72 * MS.hour,
+  deletionMs: 30 * MS.day,
+  withdrawalMs: MS.hour,
+  quickChatLogMs: 90 * MS.day,
+  qosMs: 90 * MS.day,
+  addressPrefixMs: 24 * MS.hour,
+  replayMs: 14 * MS.day,
+  legalHoldMs: 365 * MS.day,
+  safetyReportMs: 365 * MS.day,
+  consentAfterClosureMs: 3 * 365 * MS.day,
+  activityDays: 30,
+  dashboardFreshMs: 15 * MS.minute,
+  suspend24hMs: 24 * MS.hour,
+  suspend7dMs: 7 * MS.day,
+  vpcChallengeMs: 15 * MS.minute,
+  showMinutesMax: 180,
+  addressPrefixMax: 0xff_ffff,
+} as const

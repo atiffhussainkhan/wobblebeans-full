@@ -1,0 +1,1164 @@
+{
+  "version": 1,
+  "generatedFor": "wobblebeans-show",
+  "note": "Used assets are CC0 packs from the Image repo GitHub Releases. The private animation repo was checked and not used (2D sprite sheets, not a 3D bean). Quaternius Ultimate Characters was reviewed and not used (human costumes, many armed). Clipart and unverified search bundles were not used. The bean body is an original mesh on the KayKit rig.",
+  "count": 153,
+  "used": [
+    {
+      "path": "animations/KayKit_AnimatedCharacter_v1.2.glb",
+      "role": "Bean skeleton and clips (Idle, Run, Walk, Jump, Roll, LayingDownIdle, Defeat, Wave, Cheer, Dance). The Prototype Pete mesh is not drawn.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-v1",
+      "sourcePack": "kaykit-character-animations-1.2.zip",
+      "author": "Kay Lousberg (KayKit)",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kaykit_animations_License.txt"
+    },
+    {
+      "path": "backgrounds/skybox-day.png",
+      "role": "Day sky",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "patterns/pattern_03.png",
+      "role": "Hazard stripe on orange and plum blocks",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "vfx/star_06.png",
+      "role": "Confetti, dust and splash particles",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "ui/star.png",
+      "role": "Show title icon",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "ui/multiplayer.png",
+      "role": "Show title icon",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "ui/information.png",
+      "role": "Controls hint icon",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/tree.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/flowers.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/hedge.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/mushrooms.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/cupcake.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/donut-sprinkles.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/ice-cream.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/lollypop.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/heart.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/windmill.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/castle.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/present-a-round.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/flag.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    },
+    {
+      "path": "obstacles/star.glb",
+      "role": "Course dressing. Does not affect the physics course.",
+      "sourceRepo": "https://github.com/atiffhussainkhan/Image",
+      "sourceRelease": "mega-assets-expansion-v1",
+      "sourcePack": "shorepine-kenney.zip",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "licenseFile": "licenses/kenney_LICENSE.txt"
+    }
+  ],
+  "assets": [
+    {
+      "path": "ASSET_SELECTION.md",
+      "bytes": 40398,
+      "category": "ASSET_SELECTION.md",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Casual_Female.gltf",
+      "bytes": 2058883,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Cheer.fbx",
+      "bytes": 215212,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Climbing.fbx",
+      "bytes": 215420,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Dance.fbx",
+      "bytes": 216444,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/DashBack.fbx",
+      "bytes": 210108,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/DashFront.fbx",
+      "bytes": 209932,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/DashLeft.fbx",
+      "bytes": 210444,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/DashRight.fbx",
+      "bytes": 210444,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Defeat.fbx",
+      "bytes": 212124,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Hop.fbx",
+      "bytes": 212012,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Idle.fbx",
+      "bytes": 209404,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Interact.fbx",
+      "bytes": 211900,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Jump.fbx",
+      "bytes": 211708,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/KayKit_AnimatedCharacter_v1.2.glb",
+      "bytes": 459768,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/LayingDownIdle.fbx",
+      "bytes": 209532,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/PickUp.fbx",
+      "bytes": 211244,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Roll.fbx",
+      "bytes": 210780,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Run.fbx",
+      "bytes": 213004,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Throw.fbx",
+      "bytes": 211308,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Walk.fbx",
+      "bytes": 211068,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "animations/Wave.fbx",
+      "bytes": 211340,
+      "category": "animations",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundCastles.png",
+      "bytes": 14738,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundColorDesert.png",
+      "bytes": 18073,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundColorFall.png",
+      "bytes": 20649,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundColorForest.png",
+      "bytes": 21963,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundColorGrass.png",
+      "bytes": 22809,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundDesert.png",
+      "bytes": 16511,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundEmpty.png",
+      "bytes": 9444,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/backgroundForest.png",
+      "bytes": 20205,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/cloudLayer1.png",
+      "bytes": 4284,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/skybox-alien.png",
+      "bytes": 1410804,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/skybox-day.png",
+      "bytes": 1051605,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/skybox-morning.png",
+      "bytes": 899710,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "backgrounds/skybox-night.png",
+      "bytes": 1099375,
+      "category": "backgrounds",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/PrototypePete.gltf",
+      "bytes": 192049,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/Textures/colormap.png",
+      "bytes": 11140,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/character-oobi.glb",
+      "bytes": 236392,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/character-oodi.glb",
+      "bytes": 202604,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/character-ooli.glb",
+      "bytes": 206704,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/character-oopi.glb",
+      "bytes": 211344,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "characters/character-oozi.glb",
+      "bytes": 219072,
+      "category": "characters",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "contact_sheet.png",
+      "bytes": 1145423,
+      "category": "contact_sheet.png",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Cube_Prototype_Large_A.bin",
+      "bytes": 2216,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Cube_Prototype_Large_A.gltf",
+      "bytes": 3018,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Beam.bin",
+      "bytes": 840,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Beam.gltf",
+      "bytes": 3015,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Floor.bin",
+      "bytes": 840,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Floor.gltf",
+      "bytes": 2983,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Floor_Hole.bin",
+      "bytes": 1984,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Floor_Hole.gltf",
+      "bytes": 3030,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Slope.bin",
+      "bytes": 624,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Slope.gltf",
+      "bytes": 2999,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Stairs.bin",
+      "bytes": 3992,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Primitive_Stairs.gltf",
+      "bytes": 3012,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/Textures/colormap.png",
+      "bytes": 10715,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/block-grass-curve.glb",
+      "bytes": 19004,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/block-grass-hexagon.glb",
+      "bytes": 5920,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/block-grass-large.glb",
+      "bytes": 10188,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/block-moving-blue.glb",
+      "bytes": 23268,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/block-snow-large.glb",
+      "bytes": 10208,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/bump-a.glb",
+      "bytes": 36172,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/bump.glb",
+      "bytes": 11364,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/button-round.glb",
+      "bytes": 14712,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/candy-cane-red.glb",
+      "bytes": 7956,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/castle.glb",
+      "bytes": 16760,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/coin-gold.glb",
+      "bytes": 10608,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/conveyor-belt.glb",
+      "bytes": 33796,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/crate.glb",
+      "bytes": 14336,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/cupcake.glb",
+      "bytes": 22724,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/curve-wide.glb",
+      "bytes": 21988,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/donut-sprinkles.glb",
+      "bytes": 20008,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/door-rotate.glb",
+      "bytes": 41200,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/flag.glb",
+      "bytes": 11396,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/flowers.glb",
+      "bytes": 25928,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/funnel.glb",
+      "bytes": 5112,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/heart.glb",
+      "bytes": 5828,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/hedge.glb",
+      "bytes": 8916,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/ice-cream.glb",
+      "bytes": 10124,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/lollypop.glb",
+      "bytes": 8544,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/mushrooms.glb",
+      "bytes": 13728,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/pipe.glb",
+      "bytes": 20252,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/platform-ramp.glb",
+      "bytes": 10092,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/platform.glb",
+      "bytes": 9968,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/poles.glb",
+      "bytes": 24188,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/present-a-round.glb",
+      "bytes": 18960,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/prototypebits_texture.png",
+      "bytes": 29696,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/ramp-large.glb",
+      "bytes": 29508,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/snowflake-a.glb",
+      "bytes": 24204,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/snowman.glb",
+      "bytes": 46492,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/spring.glb",
+      "bytes": 38748,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/star.glb",
+      "bytes": 6268,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/tree.glb",
+      "bytes": 42680,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "obstacles/windmill.glb",
+      "bytes": 27096,
+      "category": "obstacles",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_03.png",
+      "bytes": 1028,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_07.png",
+      "bytes": 3192,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_16.png",
+      "bytes": 241,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_24.png",
+      "bytes": 7654,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_29.png",
+      "bytes": 1984,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_38.png",
+      "bytes": 7588,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_70.png",
+      "bytes": 6301,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_72.png",
+      "bytes": 7143,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_75.png",
+      "bytes": 6153,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "patterns/pattern_79.png",
+      "bytes": 8229,
+      "category": "patterns",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/audioOff.png",
+      "bytes": 380,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/audioOn.png",
+      "bytes": 604,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/button_rectangle_depth_gloss.png",
+      "bytes": 373,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/button_round_depth_gloss.png",
+      "bytes": 1210,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/button_square_depth_flat.png",
+      "bytes": 355,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/check_round_color.png",
+      "bytes": 579,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/checkmark.png",
+      "bytes": 604,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/cross.png",
+      "bytes": 539,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/exclamation.png",
+      "bytes": 341,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/flat_medal1.png",
+      "bytes": 1010,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/flat_medal2.png",
+      "bytes": 1075,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/flat_medal3.png",
+      "bytes": 925,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/flat_medal4.png",
+      "bytes": 1015,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/gear.png",
+      "bytes": 863,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/home.png",
+      "bytes": 325,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/information.png",
+      "bytes": 415,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/leaderboardsSimple.png",
+      "bytes": 155,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/locked.png",
+      "bytes": 295,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/medal1.png",
+      "bytes": 585,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/multiplayer.png",
+      "bytes": 665,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/musicOff.png",
+      "bytes": 596,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/musicOn.png",
+      "bytes": 475,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/pause.png",
+      "bytes": 269,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/question.png",
+      "bytes": 548,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/return.png",
+      "bytes": 629,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/singleplayer.png",
+      "bytes": 555,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/star.png",
+      "bytes": 548,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/trophy.png",
+      "bytes": 315,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/unlocked.png",
+      "bytes": 302,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "ui/warning.png",
+      "bytes": 646,
+      "category": "ui",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/circle_05.png",
+      "bytes": 65336,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/flare_01.png",
+      "bytes": 42886,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/light_01.png",
+      "bytes": 93470,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/magic_03.png",
+      "bytes": 58093,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff00.png",
+      "bytes": 57599,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff01.png",
+      "bytes": 55357,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff02.png",
+      "bytes": 58602,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff03.png",
+      "bytes": 58213,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff04.png",
+      "bytes": 60272,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff05.png",
+      "bytes": 55591,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff06.png",
+      "bytes": 57119,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff07.png",
+      "bytes": 58796,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/puff_whitePuff08.png",
+      "bytes": 61704,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/spark_02.png",
+      "bytes": 101613,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/star_04.png",
+      "bytes": 30613,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/star_06.png",
+      "bytes": 35453,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/star_08.png",
+      "bytes": 26479,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/trace_04.png",
+      "bytes": 47104,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "vfx/twirl_02.png",
+      "bytes": 76886,
+      "category": "vfx",
+      "license": "CC0-1.0"
+    }
+  ],
+  "licenses": [
+    {
+      "path": "licenses/kaykit_animations_License.txt",
+      "bytes": 638,
+      "category": "license",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "licenses/kaykit_prototype_bits_LICENSE.txt",
+      "bytes": 827,
+      "category": "license",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "licenses/kenney_LICENSE.txt",
+      "bytes": 713,
+      "category": "license",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "licenses/quaternius_PROVENANCE.md",
+      "bytes": 204,
+      "category": "license",
+      "license": "CC0-1.0"
+    }
+  ]
+}

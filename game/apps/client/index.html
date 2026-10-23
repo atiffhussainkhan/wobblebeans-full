@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Wobblebeans</title>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="hud">
+      <header class="panel brand-bar">
+        <div class="brand">
+          <img src="/assets/ui/star.png" alt="" width="28" height="28" />
+          <span>Wobblebeans</span>
+          <img src="/assets/ui/multiplayer.png" alt="" width="28" height="28" />
+        </div>
+        <p id="status">Warming up the show…</p>
+        <p id="net">Connecting</p>
+      </header>
+
+      <aside id="roster" class="panel" aria-label="Beans in this show"></aside>
+
+      <div id="banner" class="panel banner" hidden></div>
+      <p id="announce" hidden>Get ready</p>
+
+      <div id="bubble" class="panel bubble" hidden></div>
+
+      <footer class="panel controls">
+        <img src="/assets/ui/information.png" alt="" width="28" height="28" />
+        <p>
+          <strong>Move</strong> WASD
+          <strong>Jump</strong> Space
+          <strong>Dive</strong> Shift
+          <strong>Look</strong> drag or Q E
+          <strong>Hello</strong> 1–6
+        </p>
+        <p id="me"></p>
+      </footer>
+
+      <div id="touch">
+        <div id="stick" aria-hidden="true"><div id="knob"></div></div>
+        <div id="touch-actions">
+          <button type="button" id="btn-jump">Jump</button>
+          <button type="button" id="btn-dive">Dive</button>
+        </div>
+      </div>
+
+      <div id="error" class="panel error" hidden></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

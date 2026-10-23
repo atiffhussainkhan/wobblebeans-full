@@ -1,0 +1,32 @@
+{
+  "name": "wobblebeans",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"pnpm --filter @wobblebeans/server dev\" \"pnpm --filter @wobblebeans/client dev\"",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "safety": "node tools/check-safety.mjs",
+    "assets:manifest": "node tools/generate-manifest.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm safety"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^22.18.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.0",
+    "vitest": "^3.2.4"
+  }
+}
