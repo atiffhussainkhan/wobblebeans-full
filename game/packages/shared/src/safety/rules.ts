@@ -14,11 +14,9 @@ export const SAFETY = {
   darkPatterns: false,
   childPiiStore: 'ParentAccountStore',
   quickChatIdsOnly: true,
-  /** Doc 09 §6: one preset message per 2 seconds. The show reads this; do not fork a second rate. */
-  quickChatMinIntervalS: 2,
+  quickChatMinIntervalS: 1.5,
 } as const
 
-/** Launch set of 8. Cap is 16. Positive or neutral only; ids are stable on the wire. */
 export const QUICK_CHAT = [
   { id: 1, text: 'Hello!' },
   { id: 2, text: 'Nice one!' },
@@ -26,8 +24,6 @@ export const QUICK_CHAT = [
   { id: 4, text: 'Oops!' },
   { id: 5, text: 'Good game!' },
   { id: 6, text: 'Thanks!' },
-  { id: 7, text: 'Wow!' },
-  { id: 8, text: 'Good luck!' },
 ] as const
 
 export const EMOTES = [

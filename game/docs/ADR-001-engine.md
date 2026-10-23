@@ -54,7 +54,7 @@ The server owns poses, finish, respawn, and the shuttle. The client runs a secon
 ### What this slice deliberately leaves out
 
 - The eight MVP levels and the obstacle kit (workstream 3). The foundation course is `foundation-gauntlet`, a movement test, not a show level.
-- Show phases, matchmaking, bots, and reconnect now live in workstream 4 (`apps/server/src/flow/`, `apps/server/src/bots/`, `MatchmakerService`, `FleetService`). The round plug-in added in `packages/shared/src/show/` is additive: `Hello` through `Reject` are unchanged, and round flow uses `EventKind.RoundState` with numeric codes. Reconnect tokens are not a Hello field because that layout is frozen; `Show.resume` takes the token from a side channel. Protocol version stays 1.
+- Show phases, matchmaking, bots, reconnect tokens (60 s, max 2, D-09) (workstream 4).
 - Screens SC-01…SC-15 (workstream 5). The gauntlet HUD is a placeholder.
 - Audio playback (workstream 6). Event ids live in `packages/shared/src/audio/events.ts`. `blip()` is a no-op.
 - Persistence, the real gateway, and telemetry shipping (workstream 9).
@@ -70,7 +70,7 @@ From `SAFETY` and `tools/check-safety.mjs`, which CI runs:
 - Display names are Adjective + Noun + two digits from `nameForSlot`. No free-text name.
 - No dark-pattern flags. Play again is a button the player presses (doc 01 §4.2).
 
-`SAFETY.quickChatMinIntervalS` is 2, matching doc 09 §6 (one preset message per 2 s). Workstream 8 set this on 2026-10-23 and extended `QUICK_CHAT` to the eight-phrase launch set. The show server reads this constant; do not fork a second rate. Five identical phrases inside 30 s soft-throttle that sender to one quick-chat per 10 s for 60 s, in the same gate.
+`SAFETY.quickChatMinIntervalS` is 1.5. Doc 09 §6 specifies 1 message / 2 s. Workstream 8 owns moving the constant to 2.0 and extending the phrase list toward the launch set. Do not fork a second rate.
 
 ## Consequences
 

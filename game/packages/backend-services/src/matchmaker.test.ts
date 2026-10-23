@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FleetService } from './fleet'
+import { ConfigService } from './live-config'
 import { MatchmakerService } from './matchmaker'
 
 function ids(count: number, prefix = 'p'): string[] {
@@ -17,9 +18,7 @@ describe('matchmaking', () => {
     expect(started[0]?.region).toBe('eu-w')
 
     const thin = new MatchmakerService()
-    const queued = ids(10).map((playerId) =>
-      thin.queue({ playerIds: [playerId], region: 'na-e', showsCompleted: 9, nowMs: 0 }),
-    )
+    const queued = ids(10).map((playerId) => thin.queue({ playerIds: [playerId], region: 'na-e', showsCompleted: 9, nowMs: 0 }))
     expect(thin.tick(59_000)).toHaveLength(0)
     const filled = thin.tick(60_000)
     expect(filled).toHaveLength(10)
@@ -51,9 +50,7 @@ describe('matchmaking', () => {
     expect(() => mm.invite(party.id, 'm5')).toThrow(/full/)
     expect(() => mm.queueParty(party.id, 'm2', { region: 'eu-w', showsCompleted: 9 })).toThrow(/leader/)
     const ticket = mm.queueParty(party.id, 'leader', { region: 'eu-w', showsCompleted: 9, nowMs: 0 })
-    for (const playerId of ids(28)) {
-      mm.queue({ playerIds: [playerId], region: 'eu-w', showsCompleted: 9, nowMs: 0 })
-    }
+    for (const playerId of ids(28)) mm.queue({ playerIds: [playerId], region: 'eu-w', showsCompleted: 9, nowMs: 0 })
     mm.tick(0)
     const roster = mm.get(ticket.id)?.roster ?? []
     const humans = roster.filter((member) => !member.isBot).map((member) => member.playerId)
@@ -63,9 +60,7 @@ describe('matchmaking', () => {
   it('does not mix beacon regions until the client list widens, and rejects coordinates', () => {
     const mm = new MatchmakerService()
     expect(() => mm.queue({ playerIds: ['x'], region: '51.5, -0.1' })).toThrow(/beacon/)
-    for (const playerId of ids(7, 'c')) {
-      mm.queue({ playerIds: [playerId], region: 'eu-c', showsCompleted: 9, nowMs: 0 })
-    }
+    for (const playerId of ids(7, 'c')) mm.queue({ playerIds: [playerId], region: 'eu-c', showsCompleted: 9, nowMs: 0 })
     const west = mm.queue({
       playerIds: ['west'],
       region: 'eu-w',
@@ -83,12 +78,8 @@ describe('matchmaking', () => {
 
   it('keeps new players together for 20 seconds, then lets them join the casual pool', () => {
     const mm = new MatchmakerService()
-    for (const playerId of ids(16, 'n')) {
-      mm.queue({ playerIds: [playerId], region: 'na-w', showsCompleted: 1, nowMs: 0 })
-    }
-    for (const playerId of ids(16, 'v')) {
-      mm.queue({ playerIds: [playerId], region: 'na-w', showsCompleted: 6, nowMs: 0 })
-    }
+    for (const playerId of ids(16, 'n')) mm.queue({ playerIds: [playerId], region: 'na-w', showsCompleted: 1, nowMs: 0 })
+    for (const playerId of ids(16, 'v')) mm.queue({ playerIds: [playerId], region: 'na-w', showsCompleted: 6, nowMs: 0 })
     expect(mm.tick(10_000)).toHaveLength(0)
     const started = mm.tick(20_000)
     expect(started).toHaveLength(32)
@@ -136,5 +127,32 @@ describe('matchmaking', () => {
         roster: [{ playerId: 'p1', isBot: false }],
       }),
     ).toBeNull()
+  })
+
+  it('refuses a mismatched physics hash and pins the config the show started with', () => {
+    const config = new ConfigService()
+    config.current = { ...config.current, version: 'live-1', physicsHash: 99 }
+    const fleet = new FleetService()
+    const mm = new MatchmakerService(fleet, { config, configVersion: 'live-1' })
+    const refused = mm.queue({ playerIds: ['stale'], region: 'eu-w', clientPhysicsHash: 1, showsCompleted: 9, nowMs: 0 })
+    expect(refused.status).toBe('cancelled')
+    expect(refused.refreshConfig).toBe(true)
+    expect(mm.tick(0)).toHaveLength(0)
+    for (const playerId of ids(32)) {
+      mm.queue({ playerIds: [playerId], region: 'eu-w', clientPhysicsHash: 99, showsCompleted: 9, nowMs: 0 })
+    }
+    const started = mm.tick(0)
+    expect(started[0]?.configVersion).toBe('live-1')
+    expect(started[0]?.physicsHash).toBe(99)
+    const showId = started[0]?.showId ?? ''
+    const token = started[0]?.connectTokens?.[0]
+    expect(token).toBeTruthy()
+    const mismatch = fleet.admit(token!.token, token!.playerId, showId, 0, 1)
+    expect(mismatch.ok).toBe(false)
+    expect(mismatch.refreshConfig).toBe(true)
+    expect(fleet.admit(token!.token, token!.playerId, showId, 0, 99).ok).toBe(true)
+    config.current = { ...config.current, version: 'live-2', physicsHash: 5 }
+    expect(config.getPin(showId)?.version).toBe('live-1')
+    expect(config.getPin(showId)?.physicsHash).toBe(99)
   })
 })

@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+.git
+assets
+apps/client/public
+docs
+**/*.docx
+**/*.fbx
+**/*.glb
+**/*.gltf
+**/*.png

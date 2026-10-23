@@ -1,0 +1,63 @@
+# Backend persistence for workstream 9.
+# The gauntlet show process is intentionally not in this file.
+# PARENT_DATA_KEY stays on the gateway. Do not mount it into a show container.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wobble
+      POSTGRES_PASSWORD: wobble
+      POSTGRES_DB: wobblebeans
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wobble -d wobblebeans"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: packages/backend-services/Dockerfile
+    environment:
+      DATABASE_URL: postgres://wobble:wobble@postgres:5432/wobblebeans
+      REDIS_URL: redis://redis:6379
+      # 32-byte dev key. Replace it outside local compose. Show servers must not receive it.
+      PARENT_DATA_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      CONFIG_SIGNING_KEY: dev-config-key
+      SESSION_SECRET: dev-session-secret
+      PLATFORM_PEPPER: dev-platform-pepper
+      MATCH_RESULT_KEY: dev-match-key
+      ADMIN_MFA_SECRET: dev-admin-mfa
+      WOBBLE_SEED_CONFIG: "1"
+      PORT: "8088"
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8088/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 15s

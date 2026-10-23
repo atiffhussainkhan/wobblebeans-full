@@ -1,5 +1,8 @@
-import { NET, SHOW_RULES } from '@wobblebeans/shared'
+import { NET } from '@wobblebeans/shared'
 import { FleetService, type ShowAllocation } from './fleet'
+import type { ConfigService } from './live-config'
+import { physicsHashAllowed } from './physics-admit'
+import { QUEUE_RULES } from './queue-rules'
 import { assertRegion, type ShowRegion } from './regions'
 
 export type TicketStatus = 'queued' | 'allocated' | 'cancelled' | 'lowpop' | 'practice'
@@ -16,6 +19,10 @@ export interface QueueTicket {
   practiceOffered?: boolean
   roster?: { playerId: string; isBot: boolean }[]
   connectTokens?: { playerId: string; token: string; showId: string }[]
+  /** Set when the client hash does not match the config that would be pinned. */
+  refreshConfig?: boolean
+  configVersion?: string
+  physicsHash?: number
 }
 
 export interface QueueRequest {
@@ -26,6 +33,8 @@ export interface QueueRequest {
   /** Highest show count in the party. Under 5 joins the new-player pool. */
   showsCompleted?: number
   nowMs?: number
+  /** When present, must match the live physics hash or the ticket is refused. */
+  clientPhysicsHash?: number
 }
 
 export interface Party {
@@ -57,6 +66,8 @@ interface WaitingTicket {
   practiceOffered?: boolean
   roster?: { playerId: string; isBot: boolean }[]
   connectTokens?: { playerId: string; token: string; showId: string }[]
+  configVersion?: string
+  physicsHash?: number
 }
 
 interface Lobby {
@@ -65,11 +76,16 @@ interface Lobby {
   members: WaitingTicket[]
 }
 
+export interface MatchmakerOptions {
+  configVersion?: string
+  config?: ConfigService
+}
+
 /**
- * Casual matchmaking (doc 09 §3, D-11, D-12, ISS-06).
- * Parties of up to 4 stay whole. Region ids come from the client.
- * After 120 s with no show, the ticket is offered Practice instead of sitting in a dead queue.
- * Nothing here re-queues a finished show.
+ * Casual matchmaking (doc 09 §3, D-11, D-12).
+ * Parties of up to 4 stay whole. Region ids come from ping beacons.
+ * After 120 s with no show, the ticket is offered Practice instead of a dead queue.
+ * Practice grants no XP and no coins. Nothing here re-queues a finished show.
  */
 export class MatchmakerService {
   readonly name = 'matchmaker'
@@ -78,14 +94,29 @@ export class MatchmakerService {
   private readonly blocks = new Set<string>()
   private seq = 0
   private showSeq = 0
+  private live = false
+  private readonly configVersion: string
+  private readonly config: ConfigService | null
 
   constructor(
     private readonly fleet = new FleetService(),
-    private readonly configVersion = 'foundation-1',
-  ) {}
+    configVersionOrOptions: string | MatchmakerOptions = 'foundation-1',
+  ) {
+    if (typeof configVersionOrOptions === 'string') {
+      this.configVersion = configVersionOrOptions
+      this.config = null
+    } else {
+      this.configVersion = configVersionOrOptions.configVersion ?? 'foundation-1'
+      this.config = configVersionOrOptions.config ?? null
+    }
+  }
 
   ready(): { name: string; ready: boolean } {
-    return { name: this.name, ready: false }
+    return { name: this.name, ready: this.live }
+  }
+
+  markLive(live = true): void {
+    this.live = live
   }
 
   block(playerId: string, subjectId: string): void {
@@ -100,16 +131,16 @@ export class MatchmakerService {
   createParty(leaderId: string): Party {
     const party: Party = { id: `party_${++this.seq}`, leaderId, memberIds: [leaderId] }
     this.parties.set(party.id, party)
-    return { ...party, memberIds: [...party.memberIds] }
+    return publicParty(party)
   }
 
   invite(partyId: string, playerId: string): Party {
     const party = this.party(partyId)
-    if (party.memberIds.includes(playerId)) return this.publicParty(party)
-    if (party.memberIds.length >= SHOW_RULES.maxParty) throw new Error('party is full')
+    if (party.memberIds.includes(playerId)) return publicParty(party)
+    if (party.memberIds.length >= QUEUE_RULES.maxParty) throw new Error('party is full')
     if (party.memberIds.some((member) => this.blocked(member, playerId))) throw new Error('blocked')
     party.memberIds.push(playerId)
-    return this.publicParty(party)
+    return publicParty(party)
   }
 
   leaveParty(partyId: string, playerId: string): Party | null {
@@ -125,13 +156,10 @@ export class MatchmakerService {
       party.leaderId = next
     }
     this.cancelMembers([playerId])
-    return this.publicParty(party)
+    return publicParty(party)
   }
 
-  /**
-   * Leader queues the whole party. A ticket without a party object may still
-   * carry 1–4 ids; those ids are allocated together.
-   */
+  /** Leader queues the whole party. */
   queueParty(partyId: string, requesterId: string, request: Omit<QueueRequest, 'playerIds'> = {}): QueueTicket {
     const party = this.party(partyId)
     if (requesterId !== party.leaderId) throw new Error('leader queues')
@@ -140,7 +168,7 @@ export class MatchmakerService {
 
   queue(request: QueueRequest): QueueTicket {
     const playerIds = [...request.playerIds]
-    if (playerIds.length < 1 || playerIds.length > SHOW_RULES.maxParty) throw new Error('party size')
+    if (playerIds.length < 1 || playerIds.length > QUEUE_RULES.maxParty) throw new Error('party size')
     if (new Set(playerIds).size !== playerIds.length) throw new Error('party size')
     const region = assertRegion(request.region)
     const widenRegions = (request.widenRegions ?? []).map((value) => {
@@ -148,6 +176,18 @@ export class MatchmakerService {
       if (!parsed) throw new Error('unknown region')
       return parsed
     })
+    const expected = this.config?.current.physicsHash
+    if (request.clientPhysicsHash !== undefined && expected !== undefined && !physicsHashAllowed(request.clientPhysicsHash, expected)) {
+      return {
+        id: 'refused',
+        playerIds,
+        region,
+        status: 'cancelled',
+        refreshConfig: true,
+        physicsHash: expected,
+        configVersion: this.config?.current.version ?? this.configVersion,
+      }
+    }
     for (const playerId of playerIds) {
       if (this.tickets.some((ticket) => ticket.status === 'queued' && ticket.playerIds.includes(playerId))) {
         throw new Error('already queued')
@@ -180,7 +220,7 @@ export class MatchmakerService {
     return true
   }
 
-  /** Manual "try again" from the low-population offer. Does not fire on its own. */
+  /** Manual retry from the low-population offer. Does not fire on its own. */
   retry(id: string, nowMs: number): QueueTicket {
     const ticket = this.must(id)
     if (ticket.status !== 'lowpop') throw new Error('not waiting on practice')
@@ -193,10 +233,10 @@ export class MatchmakerService {
   acceptPractice(id: string, botCount = 3): PracticeOffer {
     const ticket = this.must(id)
     if (ticket.status !== 'lowpop' || !ticket.practiceOffered) throw new Error('practice is offered after a long queue')
-    if (botCount < 0 || botCount > SHOW_RULES.practiceMaxBots) throw new Error('practice bot count')
+    if (botCount < 0 || botCount > QUEUE_RULES.practiceMaxBots) throw new Error('practice bot count')
     ticket.status = 'practice'
     return {
-      humanId: ticket.playerIds[0]!,
+      humanId: ticket.playerIds[0] ?? '',
       playerIds: [...ticket.playerIds],
       botCount,
       xpEarned: 0,
@@ -245,7 +285,7 @@ export class MatchmakerService {
     })
     const peaceful = fitting.filter((lobby) => !this.conflicts(lobby, ticket))
     const age = nowMs - ticket.enqueuedAt
-    const choice = peaceful[0] ?? (age >= SHOW_RULES.blockGraceMs ? fitting[0] : undefined)
+    const choice = peaceful[0] ?? (age >= QUEUE_RULES.blockGraceMs ? fitting[0] : undefined)
     if (choice) {
       choice.members.push(ticket)
       return
@@ -257,27 +297,33 @@ export class MatchmakerService {
     const humans = this.humans(lobby)
     const age = nowMs - Math.min(...lobby.members.map((ticket) => ticket.enqueuedAt))
     if (humans >= NET.maxPlayers) return { bots: 0 }
-    if (age >= SHOW_RULES.fillAt20Ms && humans >= SHOW_RULES.humansAt20s) return { bots: 0 }
-    if (age >= SHOW_RULES.fillAt40Ms && humans >= SHOW_RULES.humansAt40s) return { bots: 0 }
-    if (age >= SHOW_RULES.botBackfillMs && humans >= SHOW_RULES.minWithBots) return { bots: 0 }
-    if (age >= SHOW_RULES.botBackfillMs && humans >= SHOW_RULES.minHumans) {
-      const bots = Math.min(SHOW_RULES.maxBots, NET.maxPlayers - humans)
-      if (humans + bots >= SHOW_RULES.minWithBots) return { bots }
+    if (age >= QUEUE_RULES.fillAt20Ms && humans >= QUEUE_RULES.humansAt20s) return { bots: 0 }
+    if (age >= QUEUE_RULES.fillAt40Ms && humans >= QUEUE_RULES.humansAt40s) return { bots: 0 }
+    if (age >= QUEUE_RULES.botBackfillMs && humans >= QUEUE_RULES.minWithBots) return { bots: 0 }
+    if (age >= QUEUE_RULES.botBackfillMs && humans >= QUEUE_RULES.minHumans) {
+      const bots = Math.min(QUEUE_RULES.maxBots, NET.maxPlayers - humans)
+      if (humans + bots >= QUEUE_RULES.minWithBots) return { bots }
     }
-    if (age >= SHOW_RULES.lowPopMs) return 'practice'
+    if (age >= QUEUE_RULES.lowPopMs) return 'practice'
     return 'wait'
   }
 
   private allocate(lobby: Lobby, bots: number, nowMs: number): QueueTicket[] | null {
     const showId = `show_${++this.showSeq}`
+    const pinned = this.config?.pinForShow(showId, new Date(nowMs))
+    const configVersion = pinned?.version ?? this.configVersion
+    const physicsHash = pinned?.physicsHash ?? this.config?.current.physicsHash ?? 0
     const roster = lobby.members.flatMap((ticket) => ticket.playerIds.map((playerId) => ({ playerId, isBot: false })))
     for (let i = 1; i <= bots; i++) roster.push({ playerId: `bot:${showId}:${i}`, isBot: true })
     const allocation = this.fleet.allocate({
       showId,
       region: lobby.region,
-      configVersion: this.configVersion,
+      configVersion,
       roster,
       nowMs,
+      physicsHash,
+      pinnedAt: pinned?.pinnedAt,
+      levels: pinned?.levels,
     })
     if (!allocation) return null
     const cohort = lobby.cohort
@@ -286,6 +332,8 @@ export class MatchmakerService {
       ticket.showId = showId
       ticket.botCount = bots
       ticket.cohort = cohort
+      ticket.configVersion = configVersion
+      ticket.physicsHash = physicsHash
       ticket.roster = roster.map((member) => ({ ...member }))
       ticket.connectTokens = allocation.tokens
         .filter((token) => ticket.playerIds.includes(token.playerId))
@@ -295,14 +343,14 @@ export class MatchmakerService {
   }
 
   private cohortOf(ticket: WaitingTicket, nowMs: number): 'new' | 'open' {
-    if (ticket.showsCompleted >= SHOW_RULES.newPlayerShows) return 'open'
-    if (nowMs - ticket.enqueuedAt >= SHOW_RULES.newPlayerFallbackMs) return 'open'
+    if (ticket.showsCompleted >= QUEUE_RULES.newPlayerShows) return 'open'
+    if (nowMs - ticket.enqueuedAt >= QUEUE_RULES.newPlayerFallbackMs) return 'open'
     return 'new'
   }
 
   private regionOk(lobby: Lobby, ticket: WaitingTicket, nowMs: number): boolean {
     if (lobby.region === ticket.region) return true
-    if (nowMs - ticket.enqueuedAt < SHOW_RULES.regionWidenMs) return false
+    if (nowMs - ticket.enqueuedAt < QUEUE_RULES.regionWidenMs) return false
     if (lobby.region === null || ticket.region === null) return false
     return ticket.widenRegions.includes(lobby.region)
   }
@@ -335,10 +383,6 @@ export class MatchmakerService {
     return ticket
   }
 
-  private publicParty(party: Party): Party {
-    return { id: party.id, leaderId: party.leaderId, memberIds: [...party.memberIds] }
-  }
-
   private publish(ticket: WaitingTicket): QueueTicket {
     return {
       id: ticket.id,
@@ -351,8 +395,14 @@ export class MatchmakerService {
       practiceOffered: ticket.practiceOffered,
       roster: ticket.roster?.map((member) => ({ ...member })),
       connectTokens: ticket.connectTokens?.map((token) => ({ ...token })),
+      configVersion: ticket.configVersion,
+      physicsHash: ticket.physicsHash,
     }
   }
+}
+
+function publicParty(party: Party): Party {
+  return { id: party.id, leaderId: party.leaderId, memberIds: [...party.memberIds] }
 }
 
 function blockKey(a: string, b: string): string {
