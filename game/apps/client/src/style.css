@@ -52,25 +52,9 @@ html, body {
   align-items: center;
   gap: 8px;
   font-weight: 800;
-  font-size: 32px;
-  letter-spacing: -0.04em;
+  font-size: 28px;
+  letter-spacing: -0.03em;
   color: #e8336b;
-}
-
-#announce {
-  position: fixed;
-  left: 50%;
-  top: 18%;
-  transform: translateX(-50%);
-  margin: 0;
-  font-size: clamp(64px, 10vw, 112px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fffdf7;
-  -webkit-text-stroke: 8px #1f2140;
-  paint-order: stroke fill;
-  text-shadow: 0 8px 0 #1f2140;
-  pointer-events: none;
 }
 
 .brand img { image-rendering: pixelated; filter: invert(13%) sepia(18%) saturate(1800%) hue-rotate(200deg); }

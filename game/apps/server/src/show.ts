@@ -2,9 +2,9 @@ import {
   BeanWorld,
   EventKind,
   NET,
+  PHYSICS,
+  SAFETY,
   beanToSnap,
-  createSocialGate,
-  stepSocialGate,
   encodeEvent,
   encodeSnapshot,
   isAllowedClientEvent,
@@ -14,9 +14,7 @@ import {
   type BeanState,
   type InputFrame,
   type SnapBean,
-  type SocialGateState,
 } from '@wobblebeans/shared'
-import type { ShowFlow } from './flow/host'
 
 export interface ShowPlayer {
   id: number
@@ -29,8 +27,6 @@ export interface ShowPlayer {
   queue: InputFrame[]
   lastInput: InputFrame | null
   lastSocialTick: number
-  quickChatAllowed: boolean
-  social: SocialGateState
 }
 
 export interface ShowStep {
@@ -45,11 +41,6 @@ export interface ShowStep {
  */
 export class Show {
   readonly players = new Map<number, ShowPlayer>()
-  /**
-   * Workstream 4 director. Absent on the gauntlet, so this file's input and
-   * snapshot behaviour stays as the foundation left it.
-   */
-  flow: ShowFlow | null = null
   private nextId = 1
   private readonly events: Uint8Array[] = []
 
@@ -80,33 +71,14 @@ export class Show {
       queue: [],
       lastInput: null,
       lastSocialTick: -1000,
-      quickChatAllowed: true,
-      social: createSocialGate(),
     }
     this.players.set(id, player)
     return player
   }
 
   removePlayer(id: number): void {
-    // Suspend for a reconnect token when a director is attached. Otherwise drop.
-    if (this.flow?.onSocketClosed(id)) return
     this.players.delete(id)
     this.world.removeBean(id)
-  }
-
-  /** Side channel for a reconnect token. Hello's byte layout cannot carry one. */
-  resume(token: string, playerId: string, showId: string): ShowPlayer | null {
-    const slot = this.flow?.resume(token, playerId, showId)
-    if (slot === undefined || slot === null) return null
-    return this.players.get(slot) ?? null
-  }
-
-  beanFinished(id: number): boolean {
-    return this.world.getState(id)?.finished ?? false
-  }
-
-  serverEvent(kind: number, subjectId: number, code: number, extra = 0): void {
-    this.events.push(encodeEvent(kind, subjectId, code, extra))
   }
 
   pushInputs(id: number, frames: InputFrame[]): void {
@@ -128,8 +100,6 @@ export class Show {
   }
 
   step(): ShowStep {
-    // Workstream 4: one director call. The input and snapshot code below is unchanged.
-    this.flow?.prepare(this)
     for (const player of this.players.values()) {
       while (player.queue.length > 0 && !ahead(player.queue[0]!.seq, player.ack)) {
         player.queue.shift()
@@ -196,21 +166,12 @@ export class Show {
     return { serverTick: this.world.tick, ackSeq: player.ack, beans }
   }
 
-  /** Parent control. Quick-chat drops immediately; emotes stay on the shared preset gate. */
-  setQuickChatAllowed(id: number, allowed: boolean): void {
-    const player = this.players.get(id)
-    if (!player) return
-    player.quickChatAllowed = allowed
-  }
-
   private emitSocial(id: number, kind: number, code: number): boolean {
     const player = this.players.get(id)
     if (!player) return false
     if (!isAllowedClientEvent(kind, code)) return false
-    if (kind === EventKind.QuickChat && !player.quickChatAllowed) return false
-    const decision = stepSocialGate(player.social, { kind, code, targetId: 0, tick: this.world.tick })
-    player.social = decision.state
-    if (!decision.allow) return false
+    const minTicks = Math.round(SAFETY.quickChatMinIntervalS * PHYSICS.tickHz)
+    if (this.world.tick - player.lastSocialTick < minTicks) return false
     player.lastSocialTick = this.world.tick
     this.events.push(encodeEvent(kind, id, code, 0))
     return true

@@ -1,13 +1,9 @@
 import * as THREE from 'three'
 import {
-  AUDIO,
   BeanWorld,
   CAPSULE_CENTER,
-  EventKind,
-  Locomotion,
   NET,
   PredictedBean,
-  RoundStateCode,
   colourForSlot,
   decodeServer,
   encodeHello,
@@ -19,16 +15,12 @@ import {
   type InputFrame,
   type SnapBean,
 } from '@wobblebeans/shared'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import './style.css'
 import { loadManifest } from './assets/load'
+import { mountGauntletAudio } from './audio/session'
 import { InputDevice } from './input'
 import { BeanView } from './render/bean'
 import { CourseView, loadSky } from './render/course'
-import { PartyVfx } from './render/vfx'
 
 const statusEl = document.querySelector<HTMLElement>('#status')!
 const netEl = document.querySelector<HTMLElement>('#net')!
@@ -37,7 +29,6 @@ const bannerEl = document.querySelector<HTMLElement>('#banner')!
 const bubbleEl = document.querySelector<HTMLElement>('#bubble')!
 const meEl = document.querySelector<HTMLElement>('#me')!
 const errorEl = document.querySelector<HTMLElement>('#error')!
-const announceEl = document.querySelector<HTMLElement>('#announce')!
 const canvas = document.querySelector<HTMLCanvasElement>('#view')!
 
 const serverUrl =
@@ -52,6 +43,9 @@ interface Ghost {
 
 const ghosts = new Map<number, Ghost>()
 const keys = new InputDevice()
+/** Workstream 6: locomotion and net events go through this bus. main.ts does not own playback. */
+const ears = mountGauntletAudio()
+const camForward = new THREE.Vector3()
 let world: BeanWorld | null = null
 let predicted: PredictedBean | null = null
 let socket: WebSocket | null = null
@@ -71,57 +65,29 @@ const feet = new THREE.Vector3()
 const look = new THREE.Vector3()
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.outputColorSpace = THREE.SRGBColorSpace
-renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.toneMappingExposure = 1.08
 
 const scene = new THREE.Scene()
-scene.background = new THREE.Color('#c5e8fb')
-scene.fog = new THREE.Fog('#c5e8fb', 36, 92)
+scene.background = new THREE.Color('#BFE6FF')
+scene.fog = new THREE.Fog('#BFE6FF', 28, 78)
 
-const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 220)
-scene.add(new THREE.HemisphereLight('#fff6e4', '#6b4a3a', 0.95))
-const sun = new THREE.DirectionalLight('#fff4e2', 2.45)
-sun.position.set(16, 28, 10)
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200)
+scene.add(new THREE.HemisphereLight('#fff4dd', '#6B4A3A', 1.1))
+const sun = new THREE.DirectionalLight('#fff7e8', 2.1)
+sun.position.set(12, 22, 8)
 sun.castShadow = true
-sun.shadow.mapSize.set(1024, 1024)
-sun.shadow.camera.near = 2
-sun.shadow.camera.far = 70
-sun.shadow.camera.left = -24
-sun.shadow.camera.right = 24
-sun.shadow.camera.top = 24
-sun.shadow.camera.bottom = -24
-sun.shadow.bias = -0.0004
+sun.shadow.mapSize.set(2048, 2048)
+sun.shadow.camera.near = 1
+sun.shadow.camera.far = 60
+sun.shadow.camera.left = -20
+sun.shadow.camera.right = 20
+sun.shadow.camera.top = 20
+sun.shadow.camera.bottom = -20
 scene.add(sun)
-const rim = new THREE.DirectionalLight('#9adfff', 0.7)
-rim.position.set(-14, 10, -8)
-scene.add(rim)
-
-const gl = renderer.getContext()
-const gpuInfo = gl.getExtension('WEBGL_debug_renderer_info')
-const gpuName = gpuInfo ? gl.getParameter(gpuInfo.UNMASKED_RENDERER_WEBGL) : ''
-const softwareGpu = /SwiftShader|llvmpipe|softpipe/i.test(String(gpuName))
-if (softwareGpu) {
-  renderer.shadowMap.enabled = false
-  sun.castShadow = false
-}
-
-const composer = new EffectComposer(renderer)
-composer.addPass(new RenderPass(scene, camera))
-const bloom = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
-  0.18,
-  0.55,
-  0.86,
-)
-if (!softwareGpu) composer.addPass(bloom)
-composer.addPass(new OutputPass())
-const vfx = new PartyVfx()
-scene.add(vfx.points)
 
 const course = new CourseView()
 scene.add(course.group)
@@ -136,7 +102,6 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
-  composer.setSize(window.innerWidth, window.innerHeight)
 })
 
 connect()
@@ -178,6 +143,7 @@ function connect(): void {
       scene.remove(localView.group)
       localView = null
     }
+    ears.onDrop()
     setStatus('The show dropped. Reconnecting…')
     window.setTimeout(connect, 1000)
   }
@@ -208,6 +174,7 @@ async function onWelcome(
   scene.add(localView.group)
   meEl.textContent = myName
   setStatus('Gauntlet is live. Open another tab to bring a friend.')
+  ears.onWelcome()
   serverTickEstimate = serverTick
 }
 
@@ -256,14 +223,11 @@ function onSnapshot(serverTick: number, ackSeq: number, beans: SnapBean[]): void
   }
 }
 
-let countdownUntil = 0
-let celebrated = false
-
 function onEvent(kind: number, subjectId: number, code: number): void {
-  if (kind === EventKind.RoundState) {
-    showRound(code)
-    return
-  }
+  const self = subjectId === myId
+  const samples = self ? undefined : ghosts.get(subjectId)?.samples
+  const snap = samples && samples.length ? samples[samples.length - 1]?.snap : undefined
+  ears.onSocial(kind, subjectId, code, self, snap ? { x: snap.px, y: snap.py, z: snap.pz } : undefined)
   if (kind === 1) {
     const text = quickChatText(code)
     if (!text) return
@@ -298,9 +262,9 @@ function frame(now: number): void {
       quickChat: sample.quickChat,
       emote: sample.emote,
     }
-    if (sample.jump) blip(AUDIO.jump)
-    if (sample.dive) blip(AUDIO.dive)
+    ears.beforeStep(predicted.state)
     predicted.push(frameInput)
+    ears.afterStep(predicted.state)
     simTick = world.tick
     stepsSinceSend += 1
     if (stepsSinceSend >= NET.tickHz / NET.inputPacketHz) {
@@ -321,17 +285,7 @@ function frame(now: number): void {
     const state = predicted.state
     feet.set(state.px + offset.x, state.py - CAPSULE_CENTER + offset.y, state.pz + offset.z)
     localView.update(feet, state, dt)
-    const speed = Math.hypot(state.vx, state.vz)
-    if (state.locomotion === Locomotion.Run && state.grounded && speed > 2 && Math.random() < 0.18) {
-      vfx.dust(feet.x, feet.y, feet.z)
-      void AUDIO.land
-    }
-    if (state.locomotion === Locomotion.Dive && Math.random() < 0.25) vfx.splash(feet.x, feet.y, feet.z)
-    if (state.finished && !celebrated) {
-      celebrated = true
-      vfx.confetti(feet.x, feet.y, feet.z)
-    }
-    aimCamera(feet, state, dt)
+    aimCamera(feet, dt)
   } else {
     camera.position.set(0, 6, -8)
     camera.lookAt(0, 1, 6)
@@ -348,72 +302,37 @@ function frame(now: number): void {
     bubbleEl.hidden = true
     bubbleUntil = 0
   }
+  camera.getWorldDirection(camForward)
+  ears.setListener({
+    x: camera.position.x,
+    y: camera.position.y,
+    z: camera.position.z,
+    fx: camForward.x,
+    fy: camForward.y,
+    fz: camForward.z,
+  })
+  ears.frame(dt)
+
   if (socket?.readyState === WebSocket.OPEN && renderNow - pingSentAt > 1000) {
     pingSentAt = renderNow
     socket.send(encodePing(renderNow))
   }
-  if (countdownUntil) tickCountdown(renderNow)
-  vfx.update(dt)
-  if (softwareGpu) renderer.render(scene, camera)
-  else composer.render()
+
+  renderer.render(scene, camera)
 }
 
-const camPos = new THREE.Vector3(0, 6, -8)
-const camLook = new THREE.Vector3(0, 1, 6)
-let camReady = false
-
-function aimCamera(targetFeet: THREE.Vector3, state: { vx: number; vz: number }, dt: number): void {
+function aimCamera(targetFeet: THREE.Vector3, _dt: number): void {
   const yaw = keys.camYaw
   const pitch = keys.camPitch
-  const dist = 9.1
-  const ahead = 1.6
-  look.set(
-    targetFeet.x + Math.sin(yaw) * ahead + state.vx * 0.08,
-    targetFeet.y + 1.25,
-    targetFeet.z + Math.cos(yaw) * ahead + state.vz * 0.08,
-  )
+  const dist = 8.4
+  look.set(targetFeet.x, targetFeet.y + 1.15, targetFeet.z)
   const horiz = dist * Math.cos(pitch)
-  const desired = new THREE.Vector3(
+  camera.position.set(
     look.x - Math.sin(yaw) * horiz,
-    look.y + dist * Math.sin(pitch) + 0.4,
+    look.y + dist * Math.sin(pitch),
     look.z - Math.cos(yaw) * horiz,
   )
-  if (!camReady) {
-    camPos.copy(desired)
-    camLook.copy(look)
-    camReady = true
-  }
-  const k = 1 - Math.exp(-dt * 5.5)
-  camPos.lerp(desired, k)
-  camLook.lerp(look, k)
-  camera.position.copy(camPos)
-  camera.lookAt(camLook)
-}
-
-function showRound(code: number): void {
-  announceEl.hidden = false
-  if (code === RoundStateCode.RoundIntro) announceEl.textContent = 'Get ready'
-  else if (code === RoundStateCode.Countdown) {
-    countdownUntil = performance.now() + 3000
-    announceEl.textContent = '3'
-  } else if (code === RoundStateCode.Go || code === RoundStateCode.Play) {
-    countdownUntil = 0
-    announceEl.textContent = 'GO!'
-    window.setTimeout(() => {
-      if (announceEl.textContent === 'GO!') announceEl.hidden = true
-    }, 700)
-  } else if (code === RoundStateCode.Outcome) announceEl.textContent = 'Nice run!'
-}
-
-function tickCountdown(now: number): void {
-  const left = countdownUntil - now
-  if (left <= 0) {
-    countdownUntil = 0
-    return
-  }
-  const n = Math.ceil(left / 1000)
-  announceEl.hidden = false
-  announceEl.textContent = String(Math.min(3, Math.max(1, n)))
+  camera.lookAt(look)
 }
 
 function sampleGhost(ghost: Ghost, now: number): SnapBean {
@@ -468,6 +387,7 @@ function setStatus(text: string): void {
 function showError(text: string): void {
   errorEl.hidden = false
   errorEl.textContent = text
+  ears.onError()
 }
 
 function rejectCopy(reason: number): string {
@@ -481,9 +401,4 @@ function lerpAngle(a: number, b: number, t: number): number {
   while (d > Math.PI) d -= Math.PI * 2
   while (d < -Math.PI) d += Math.PI * 2
   return a + d * t
-}
-
-/** Placeholder until the audio workstream wires a bus. Keeps the event id referenced. */
-function blip(id: string): void {
-  void id
 }
