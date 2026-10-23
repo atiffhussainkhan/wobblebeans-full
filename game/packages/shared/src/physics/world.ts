@@ -1,4 +1,8 @@
-import { FOUNDATION_COURSE, inFinish, moverOffset, type CourseBox, type CourseDef } from '../course/foundation-gauntlet'
+import { cloneCourse } from '../course/build'
+import { courseDirector } from '../course/director'
+import { FOUNDATION_COURSE, inFinish, type CourseBox, type CourseDef } from '../course/foundation-gauntlet'
+import { applyZoneSurface, sampleMoverPose } from '../obstacles/pose'
+import { readKit } from '../obstacles/types'
 import { CAPSULE_CENTER, PHYSICS, feetY } from './constants'
 import { makeBean, stepKinematics } from './integrate'
 import { quatFromXRotation } from './math'
@@ -71,7 +75,10 @@ export class BeanWorld {
 
   static async create(course: CourseDef = FOUNDATION_COURSE): Promise<BeanWorld> {
     const R = await loadRapier()
-    return new BeanWorld(R, course)
+    // Kit courses are cloned so two worlds do not share door or tile triggers.
+    // The gauntlet has no kit and keeps its original object.
+    const isolated = course.boxes.some((entry) => readKit(entry)) ? cloneCourse(course) : course
+    return new BeanWorld(R, isolated)
   }
 
   spawn(id: number, spawnIndex: number): BeanState {
@@ -135,6 +142,8 @@ export class BeanWorld {
    */
   step(inputs: ReadonlyMap<number, InputFrame>): void {
     this.tick += 1
+    // Workstream 3: one director call, then mover poses from sampleMoverPose(tick).
+    courseDirector(this)
     this.syncMovers()
     const ids = [...this.states.keys()].sort((a, b) => a - b)
     for (const id of ids) {
@@ -185,11 +194,12 @@ export class BeanWorld {
   }
 
   private makeBox(def: CourseBox, kinematic: boolean): BodySlot {
-    const q = quatFromXRotation(def.rx)
+    const pose = kinematic ? sampleMoverPose(def, 0) : null
+    const q = pose?.rot ?? quatFromXRotation(def.rx)
     const desc = kinematic
       ? this.R.RigidBodyDesc.kinematicPositionBased()
       : this.R.RigidBodyDesc.fixed()
-    desc.setTranslation(def.x, def.y, def.z).setRotation(q)
+    desc.setTranslation(pose?.x ?? def.x, pose?.y ?? def.y, pose?.z ?? def.z).setRotation(q)
     const body = this.world.createRigidBody(desc)
     const collider = this.world.createCollider(this.R.ColliderDesc.cuboid(def.hx, def.hy, def.hz), body)
     return { body, collider }
@@ -199,41 +209,48 @@ export class BeanWorld {
     for (const mover of this.movers) {
       const motion = mover.def.mover
       if (!motion) continue
-      const x = mover.def.x + moverOffset(this.tick, motion.amplitude, motion.period)
-      const pos = { x, y: mover.def.y, z: mover.def.z }
+      const pose = sampleMoverPose(mover.def, this.tick)
+      const pos = { x: pose.x, y: pose.y, z: pose.z }
       mover.body.setTranslation(pos, true)
       mover.body.setNextKinematicTranslation(pos)
+      if (pose.rot) {
+        mover.body.setRotation(pose.rot, true)
+        mover.body.setNextKinematicRotation(pose.rot)
+      }
     }
+  }
+
+  private supportingMover(state: BeanState): MoverSlot | null {
+    const feet = feetY(state.py)
+    for (const mover of this.movers) {
+      const pose = sampleMoverPose(mover.def, this.tick)
+      const top = pose.y + mover.def.hy
+      const onX = Math.abs(state.px - pose.x) < mover.def.hx + 0.15
+      const onZ = Math.abs(state.pz - pose.z) < mover.def.hz + 0.15
+      const onY = Math.abs(feet - top) < 0.35
+      if (state.grounded && onX && onZ && onY) return mover
+    }
+    return null
   }
 
   private surfaceFor(state: BeanState): SurfaceModifiers {
-    if (!state.onMover) return NEUTRAL_SURFACE
-    const mover = this.movers[0]
-    const motion = mover?.def.mover
-    if (!mover || !motion) return NEUTRAL_SURFACE
-    const prev = mover.def.x + moverOffset(this.tick - 1, motion.amplitude, motion.period)
-    const next = mover.def.x + moverOffset(this.tick, motion.amplitude, motion.period)
-    return {
-      ...NEUTRAL_SURFACE,
-      platformVelocityX: (next - prev) / PHYSICS.dt,
+    const support = this.supportingMover(state)
+    let surface: SurfaceModifiers = NEUTRAL_SURFACE
+    if (support) {
+      const prev = sampleMoverPose(support.def, this.tick - 1)
+      const next = sampleMoverPose(support.def, this.tick)
+      surface = {
+        ...NEUTRAL_SURFACE,
+        platformVelocityX: (next.x - prev.x) / PHYSICS.dt,
+        platformVelocityY: (next.y - prev.y) / PHYSICS.dt,
+        platformVelocityZ: (next.z - prev.z) / PHYSICS.dt,
+      }
     }
+    return applyZoneSurface(this, state, surface)
   }
 
   private noteMoverContact(state: BeanState): void {
-    const mover = this.movers[0]
-    if (!mover) {
-      state.onMover = false
-      return
-    }
-    const motion = mover.def.mover
-    if (!motion) return
-    const mx = mover.def.x + moverOffset(this.tick, motion.amplitude, motion.period)
-    const top = mover.def.y + mover.def.hy
-    const feet = feetY(state.py)
-    const onX = Math.abs(state.px - mx) < mover.def.hx + 0.15
-    const onZ = Math.abs(state.pz - mover.def.z) < mover.def.hz + 0.15
-    const onY = Math.abs(feet - top) < 0.35
-    state.onMover = state.grounded && onX && onZ && onY
+    state.onMover = this.supportingMover(state) !== null
   }
 
   private noteFinish(state: BeanState): void {

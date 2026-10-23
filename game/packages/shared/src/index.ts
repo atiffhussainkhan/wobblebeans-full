@@ -27,34 +27,10 @@ export { NET, isNearSnapshotTick, isFarSnapshotTick } from './net/rates'
 export { PredictedBean } from './net/predict'
 export { SAFETY, QUICK_CHAT, EMOTES, EventKind, quickChatText, isQuickChatId, isEmoteId, isAllowedClientEvent } from './safety/rules'
 export type { QuickChatId, EmoteId } from './safety/rules'
-export { SOCIAL_ABUSE, createSocialGate, stepSocialGate } from './safety/social-gate'
-export type { SocialGateState, SocialGateInput } from './safety/social-gate'
-export { FRIEND_CODE_ICONS, FRIEND_CODE_ICON_COUNT, FRIEND_CODE_LENGTH, isPictureFriendCode } from './safety/friend-code'
-export { REPORT_PICTURES, reportPictureLabel } from './safety/reports'
-export type { ReportPictureId } from './safety/reports'
 export { NAME_ADJECTIVES, NAME_NOUNS, BEAN_COLOURS, formatDisplayName, nameForSlot, colourForSlot } from './names/generator'
 export type { GeneratedName } from './names/generator'
 export { AUDIO, GAMEPLAY_RELEVANT_AUDIO } from './audio/events'
 export type { AudioEventId } from './audio/events'
-export { qualifyQuota, roundHalfDown, mainShowQuotaPath } from './show/quota'
-export { SHOW_RULES } from './show/rules'
-export {
-  RoundStateCode,
-  SLOT_QUALIFY_PCT,
-  registerLevel,
-  registeredLevels,
-  slotForRound,
-} from './show/round'
-export type {
-  RoundStateCodeId,
-  RoundType,
-  ShowSlot,
-  EntrantSample,
-  RoundSample,
-  QualifyDecision,
-  LevelPlug,
-} from './show/round'
-export type { MatchResult } from './show/match-result'
 export {
   Msg,
   RejectReason,
@@ -71,6 +47,43 @@ export {
   beanToSnap,
   snapToBean,
 } from './protocol/codec'
+export {
+  OBSTACLE_KIT,
+  kitSpec,
+  makeKit,
+  clampConveyor,
+  spinBarHit,
+  CONVEYOR_SPEED_CAP,
+} from './obstacles/kit'
+export type { RagdollTag, KitPieceId, ObstacleSpec, BoxKit, SampledPose } from './obstacles/types'
+export { KIT_TELEGRAPH_AUDIO, readKit } from './obstacles/types'
+export { sampleMoverPose } from './obstacles/pose'
+export {
+  SHOW_LEVELS,
+  LEVEL_CODE,
+  PLUG_COURSE_ID,
+  levelById,
+  levelForCourse,
+  levelForPlug,
+  courseForShow,
+} from './course/registry'
+export type { LevelId, ShowCourseOpts } from './course/registry'
+export { registerLevel, registeredLevels, RoundStateCode, SLOT_QUALIFY_PCT, slotForRound } from './show/round'
+export type {
+  RoundStateCodeId,
+  RoundType,
+  ShowSlot,
+  EntrantSample,
+  RoundSample,
+  QualifyDecision,
+  LevelPlug,
+} from './show/round'
+export { qualifyRound, pickTailHolders } from './course/qualify'
+export type { RoundActor, QualifyResult } from './course/qualify'
+export { qualifyQuota, roundHalfDown, OUT_SLATE, goalWordCount } from './course/schema'
+export type { LevelDef, LevelRecord, QualifyMode, FallRule } from './course/schema'
+export { courseDirector, directorFor } from './course/director'
+export { forwardJumpDriver, routeDriver, wallDriver, beamDriver } from './course/drive'
 export type {
   Hello,
   Welcome,
