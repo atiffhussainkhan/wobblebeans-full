@@ -70,7 +70,7 @@ From `SAFETY` and `tools/check-safety.mjs`, which CI runs:
 - Display names are Adjective + Noun + two digits from `nameForSlot`. No free-text name.
 - No dark-pattern flags. Play again is a button the player presses (doc 01 §4.2).
 
-`SAFETY.quickChatMinIntervalS` is 2, matching doc 09 §6 (one preset message per 2 s). Workstream 8 set this on 2026-10-23 and extended `QUICK_CHAT` to the eight-phrase launch set. The show server reads this constant; do not fork a second rate. Five identical phrases inside 30 s soft-throttle that sender to one quick-chat per 10 s for 60 s, in the same gate.
+`SAFETY.quickChatMinIntervalS` is 1.5. Doc 09 §6 specifies 1 message / 2 s. Workstream 8 owns moving the constant to 2.0 and extending the phrase list toward the launch set. Do not fork a second rate.
 
 ## Consequences
 

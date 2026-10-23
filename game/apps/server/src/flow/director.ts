@@ -12,8 +12,8 @@ import {
   type RoundSample,
   type RoundType,
   type ShowSlot,
-  type MatchResult,
 } from '@wobblebeans/shared'
+import type { MatchResult } from '@wobblebeans/backend-services'
 import { botInput, createBotMind, type BotMind } from '../bots/brain'
 import type { ShowCheckpoint, ShowCheckpointStore } from './checkpoint'
 import { SHOW, productionPhaseTicks, tickMs, type PhaseTicks } from './constants'

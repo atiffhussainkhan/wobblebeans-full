@@ -27,11 +27,6 @@ export { NET, isNearSnapshotTick, isFarSnapshotTick } from './net/rates'
 export { PredictedBean } from './net/predict'
 export { SAFETY, QUICK_CHAT, EMOTES, EventKind, quickChatText, isQuickChatId, isEmoteId, isAllowedClientEvent } from './safety/rules'
 export type { QuickChatId, EmoteId } from './safety/rules'
-export { SOCIAL_ABUSE, createSocialGate, stepSocialGate } from './safety/social-gate'
-export type { SocialGateState, SocialGateInput } from './safety/social-gate'
-export { FRIEND_CODE_ICONS, FRIEND_CODE_ICON_COUNT, FRIEND_CODE_LENGTH, isPictureFriendCode } from './safety/friend-code'
-export { REPORT_PICTURES, reportPictureLabel } from './safety/reports'
-export type { ReportPictureId } from './safety/reports'
 export { NAME_ADJECTIVES, NAME_NOUNS, BEAN_COLOURS, formatDisplayName, nameForSlot, colourForSlot } from './names/generator'
 export type { GeneratedName } from './names/generator'
 export { AUDIO, GAMEPLAY_RELEVANT_AUDIO } from './audio/events'
@@ -54,7 +49,6 @@ export type {
   QualifyDecision,
   LevelPlug,
 } from './show/round'
-export type { MatchResult } from './show/match-result'
 export {
   Msg,
   RejectReason,

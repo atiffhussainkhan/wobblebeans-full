@@ -2,9 +2,9 @@ import {
   BeanWorld,
   EventKind,
   NET,
+  PHYSICS,
+  SAFETY,
   beanToSnap,
-  createSocialGate,
-  stepSocialGate,
   encodeEvent,
   encodeSnapshot,
   isAllowedClientEvent,
@@ -14,7 +14,6 @@ import {
   type BeanState,
   type InputFrame,
   type SnapBean,
-  type SocialGateState,
 } from '@wobblebeans/shared'
 import type { ShowFlow } from './flow/host'
 
@@ -29,8 +28,6 @@ export interface ShowPlayer {
   queue: InputFrame[]
   lastInput: InputFrame | null
   lastSocialTick: number
-  quickChatAllowed: boolean
-  social: SocialGateState
 }
 
 export interface ShowStep {
@@ -80,8 +77,6 @@ export class Show {
       queue: [],
       lastInput: null,
       lastSocialTick: -1000,
-      quickChatAllowed: true,
-      social: createSocialGate(),
     }
     this.players.set(id, player)
     return player
@@ -196,21 +191,12 @@ export class Show {
     return { serverTick: this.world.tick, ackSeq: player.ack, beans }
   }
 
-  /** Parent control. Quick-chat drops immediately; emotes stay on the shared preset gate. */
-  setQuickChatAllowed(id: number, allowed: boolean): void {
-    const player = this.players.get(id)
-    if (!player) return
-    player.quickChatAllowed = allowed
-  }
-
   private emitSocial(id: number, kind: number, code: number): boolean {
     const player = this.players.get(id)
     if (!player) return false
     if (!isAllowedClientEvent(kind, code)) return false
-    if (kind === EventKind.QuickChat && !player.quickChatAllowed) return false
-    const decision = stepSocialGate(player.social, { kind, code, targetId: 0, tick: this.world.tick })
-    player.social = decision.state
-    if (!decision.allow) return false
+    const minTicks = Math.round(SAFETY.quickChatMinIntervalS * PHYSICS.tickHz)
+    if (this.world.tick - player.lastSocialTick < minTicks) return false
     player.lastSocialTick = this.world.tick
     this.events.push(encodeEvent(kind, id, code, 0))
     return true

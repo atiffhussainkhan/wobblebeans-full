@@ -5,6 +5,7 @@ import {
   qualifyQuota,
   type LevelPlug,
 } from '@wobblebeans/shared'
+import { ProgressionService } from '@wobblebeans/backend-services'
 import { ShowCheckpointStore } from './checkpoint'
 import { SHOW } from './constants'
 import { ShowDirector, runUntilSettled, type RosterMember } from './director'
@@ -83,16 +84,11 @@ describe('show director', () => {
 
   it('qualifies 32 → 22 → 13 → 8 and then a final, with bots kept out of that final', () => {
     const store = new ShowCheckpointStore()
-    const applied = new Set<string>()
-    const applyOnce = (showId: string) => {
-      if (applied.has(showId)) return { duplicate: true }
-      applied.add(showId)
-      return { duplicate: false }
-    }
+    const progression = new ProgressionService()
     const show = director(roster(32), {
       showId: 'show-32',
       checkpoints: store,
-      onResult: (result) => applyOnce(result.showId),
+      onResult: (result) => progression.applyMatchResult(result, result.showId),
     })
     runUntilSettled(show)
     expect(show.qualifierPath).toEqual([22, 13, 8])
@@ -112,7 +108,7 @@ describe('show director', () => {
     const firstOut = result?.participants.find((row) => row.playerId === 'p32')
     expect(firstOut).toMatchObject({ qualifiedRounds: 0, wonFinal: false, xpEarned: REWARD.xpParticipation, coinsEarned: REWARD.coinsShow })
     expect(store.latest('show-32')?.completedRounds).toBe(4)
-    expect(applyOnce(result!.showId).duplicate).toBe(true)
+    expect(progression.applyMatchResult(result!, result!.showId).duplicate).toBe(true)
 
     const withBots = director(roster(22, 10), { showId: 'show-bots' })
     runUntilSettled(withBots)

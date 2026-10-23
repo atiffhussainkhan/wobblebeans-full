@@ -1,4 +1,4 @@
-import type { MatchResult } from '@wobblebeans/shared'
+import type { MatchResult } from '@wobblebeans/backend-services'
 
 /**
  * Doc 07 §1 and §3. The show server fills these fields on the signed
