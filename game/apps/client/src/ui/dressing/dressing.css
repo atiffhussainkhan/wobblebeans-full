@@ -1,0 +1,132 @@
+.wobble-dressing {
+  --ink: #1f2140;
+  --berry: #e8336b;
+  --cloud: #fffdf7;
+  --oat: #f2e6c9;
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--ink);
+  background: var(--cloud);
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.wobble-dressing * {
+  box-sizing: border-box;
+}
+
+.wobble-dressing h2,
+.wobble-dressing h3,
+.wobble-dressing p {
+  margin: 0;
+}
+
+.wobble-dressing button {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 10px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  background: var(--berry);
+  color: var(--cloud);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wobble-dressing button:focus-visible {
+  outline: 4px solid #ffb627;
+  outline-offset: 3px;
+}
+
+.wobble-dressing .tabs,
+.wobble-dressing .grid,
+.wobble-dressing .turn,
+.wobble-dressing .outfits,
+.wobble-dressing .shop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wobble-dressing .tabs button,
+.wobble-dressing .grid button {
+  background: var(--oat);
+  color: var(--ink);
+}
+
+.wobble-dressing .bean-preview {
+  width: min(100%, 280px);
+  min-height: 220px;
+  margin: 0 auto;
+  border: 4px solid var(--ink);
+  border-radius: 28px;
+  background:
+    var(--pattern, none) center / 80px 80px,
+    var(--bean, #e8336b);
+  transform: rotate(var(--yaw, 0deg));
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+}
+
+.wobble-dressing .bean-preview p {
+  background: var(--cloud);
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.wobble-dressing .how,
+.wobble-dressing .shop-name,
+.wobble-dressing .help,
+.wobble-dressing .playtime {
+  flex-basis: 100%;
+  padding: 8px 4px 12px;
+}
+
+.wobble-dressing .shop {
+  padding: 12px;
+  border: 3px dashed var(--ink);
+  border-radius: 20px;
+  background: #fff;
+}
+
+@media (min-width: 1280px) {
+  .wobble-dressing {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+
+  .wobble-dressing .bean-preview,
+  .wobble-dressing .turn {
+    grid-column: 1;
+  }
+
+  .wobble-dressing .tabs,
+  .wobble-dressing .grid,
+  .wobble-dressing .outfits,
+  .wobble-dressing .shop {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 389px) {
+  .wobble-dressing {
+    padding: 10px;
+  }
+
+  .wobble-dressing button {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wobble-dressing .bean-preview {
+    transform: none;
+  }
+}

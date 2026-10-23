@@ -1,11 +1,19 @@
 /**
  * MVP service stubs. A modular monolith is acceptable (doc 08 §2).
  * None of these records include a contact address, a birth year, or free text.
+ *
+ * Progression, the coin ledger, and the shop catalogue live in ./progression.
+ * Workstream 9 can replace the in-memory repositories without changing callers.
  */
 
-import type { MatchResult } from '@wobblebeans/shared'
+import { MemoryMatchAttestation } from './progression/attest'
+import { ProgressionService } from './progression/service'
+import type { ProfileCosmeticStore } from './progression/service'
 
-export type { MatchResult }
+export type { MatchResult, MatchParticipant, LedgerEntry, ShopItem } from './progression/types'
+export { CoinLedger } from './progression/ledger'
+export { ShopCatalogue } from './progression/shop-service'
+export { ProgressionService, MemoryMatchAttestation }
 
 export interface ServiceHealth {
   name: string
@@ -51,81 +59,25 @@ export class SocialService {
   }
 }
 
-export { FleetService } from './fleet'
-export { MatchmakerService } from './matchmaker'
-export type { QueueTicket, TicketStatus, QueueRequest, Party, PracticeOffer } from './matchmaker'
-export type { ShowAllocation, ConnectToken } from './fleet'
-
-export class ProgressionService {
-  readonly name = 'progression'
-  private readonly applied = new Set<string>()
-
-  applyMatchResult(result: MatchResult, idempotencyKey: string): { accepted: boolean; duplicate: boolean } {
-    if (this.applied.has(idempotencyKey)) return { accepted: true, duplicate: true }
-    this.applied.add(idempotencyKey)
-    void result
-    return { accepted: true, duplicate: false }
-  }
-}
-
-export interface LedgerEntry {
+export interface QueueTicket {
   id: string
-  playerId: string
-  delta: number
-  reason: string
-  sourceRef: string
-  idempotencyKey: string
-  balanceAfter: number
+  playerIds: string[]
+  /** Chosen from ping beacons, never from a precise location. */
+  region: string | null
+  status: 'queued' | 'allocated' | 'cancelled'
 }
 
-export class CoinLedger {
-  private readonly entries: LedgerEntry[] = []
-
-  balance(playerId: string): number {
-    return this.entries.filter((e) => e.playerId === playerId).reduce((sum, e) => sum + e.delta, 0)
-  }
-
-  apply(input: Omit<LedgerEntry, 'id' | 'balanceAfter'>): { entry: LedgerEntry; duplicate: boolean } {
-    const existing = this.entries.find((e) => e.idempotencyKey === input.idempotencyKey)
-    if (existing) return { entry: existing, duplicate: true }
-    const entry: LedgerEntry = {
-      ...input,
-      id: `led_${this.entries.length + 1}`,
-      balanceAfter: this.balance(input.playerId) + input.delta,
-    }
-    this.entries.push(entry)
-    return { entry, duplicate: false }
+export class MatchmakerService {
+  readonly name = 'matchmaker'
+  queue(_ticket: { playerIds: string[] }): QueueTicket {
+    return { id: 'unallocated', playerIds: _ticket.playerIds, region: null, status: 'queued' }
   }
 }
 
-export interface ShopItem {
-  id: string
-  name: string
-  priceCoins: number
-  slot: 'upper' | 'lower' | 'pattern' | 'colour' | 'face' | 'emote'
-}
-
-/** Direct prices in Coins. No random reward, no premium currency. */
-export class ShopCatalogue {
-  readonly items: ShopItem[] = [
-    { id: 'top-berry', name: 'Berry vest', priceCoins: 200, slot: 'upper' },
-    { id: 'legs-oat', name: 'Oat shorts', priceCoins: 200, slot: 'lower' },
-    { id: 'pat-hearts', name: 'Heart pattern', priceCoins: 150, slot: 'pattern' },
-    { id: 'emote-wave', name: 'Wave', priceCoins: 100, slot: 'emote' },
-  ]
-
-  purchase(ledger: CoinLedger, playerId: string, itemId: string, idempotencyKey: string): { ok: boolean; reason: string } {
-    const item = this.items.find((row) => row.id === itemId)
-    if (!item) return { ok: false, reason: 'missing' }
-    if (ledger.balance(playerId) < item.priceCoins) return { ok: false, reason: 'short' }
-    ledger.apply({
-      playerId,
-      delta: -item.priceCoins,
-      reason: 'shop',
-      sourceRef: item.id,
-      idempotencyKey,
-    })
-    return { ok: true, reason: 'bought' }
+export class FleetService {
+  readonly name = 'fleet'
+  ready(): ServiceHealth {
+    return { name: this.name, ready: false }
   }
 }
 
@@ -172,13 +124,27 @@ export class TelemetryService {
   }
 }
 
-export {
-  ModerationService,
-  REPORT_CATEGORIES,
-  REPORT_CATEGORY_LABELS,
-  labelsMatchPictures,
-} from './safety/moderation'
-export type { SafetyReport, ReportCategory, ModeratorDecision, Sanction } from './safety/moderation'
+export const REPORT_CATEGORIES = ['unfair', 'mean', 'scary', 'bug'] as const
+export type ReportCategory = (typeof REPORT_CATEGORIES)[number]
+
+export interface SafetyReport {
+  id: string
+  reporterPlayerId: string
+  subjectPlayerId: string
+  category: ReportCategory
+  showId: string
+}
+
+export class ModerationService {
+  private readonly reports: SafetyReport[] = []
+
+  file(input: Omit<SafetyReport, 'id'>): SafetyReport {
+    if (!REPORT_CATEGORIES.includes(input.category)) throw new Error('unknown category')
+    const report: SafetyReport = { ...input, id: `rpt_${this.reports.length + 1}` }
+    this.reports.push(report)
+    return report
+  }
+}
 
 export class AdminService {
   readonly name = 'admin'
@@ -186,4 +152,17 @@ export class AdminService {
   ready(): ServiceHealth {
     return { name: this.name, ready: false }
   }
+}
+
+/** Attested applier. The memory attestation stands in until workstream 9 ships the server key. */
+export function createProgressionService(options?: {
+  profiles?: ProfileCosmeticStore
+  now?: () => Date
+}): ProgressionService {
+  return new ProgressionService({
+    requireAttestation: true,
+    attestation: new MemoryMatchAttestation(),
+    profiles: options?.profiles,
+    now: options?.now,
+  })
 }
