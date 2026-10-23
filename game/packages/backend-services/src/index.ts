@@ -1,20 +1,5 @@
-export { ParentAccountStore, PRIVACY_DEFAULTS, quickChatDropped } from './parent-account'
-export type {
-  ParentAccount,
-  OpenedParentAccount,
-  ChildProfile,
-  ParentControls,
-  ConsentPurposes,
-  ControlPatch,
-  OnlineDecision,
-  OnlineReason,
-  PlaytimeOutcome,
-  JobReport,
-} from './parent-account'
-export { MockVpcVendor, SignedMockVpcVendor } from './safety/vpc'
-export type { VpcVendor } from './safety/vpc'
-export { SafetyError } from './safety/errors'
-export { POLICY, MS } from './safety/durations'
+export { ParentAccountStore } from './parent-account'
+export type { ParentAccount, ChildProfile, ParentControls } from './parent-account'
 export {
   IdentityService,
   ProfileService,
@@ -29,7 +14,6 @@ export {
   ModerationService,
   AdminService,
   REPORT_CATEGORIES,
-  REPORT_CATEGORY_LABELS,
   assertTelemetrySafe,
 } from './services'
 export type {
@@ -37,12 +21,6 @@ export type {
   ServiceHealth,
   PublicProfile,
   QueueTicket,
-  TicketStatus,
-  QueueRequest,
-  Party,
-  PracticeOffer,
-  ShowAllocation,
-  ConnectToken,
   LedgerEntry,
   ShopItem,
   LiveConfig,

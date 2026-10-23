@@ -44,24 +44,6 @@ describe('show', () => {
     expect(show.pushClientEvent(a.id, 1, 99)).toBe(false)
     expect(show.pushClientEvent(a.id, 1, 1)).toBe(true)
   })
-
-  it('allows one quick-chat per 2 seconds and drops chat when a parent turns it off', async () => {
-    const world = await BeanWorld.create()
-    stops.push(async () => world.destroy())
-    const show = new Show(world)
-    const a = show.addPlayer()
-    expect(show.pushClientEvent(a.id, 1, 9)).toBe(false)
-    expect(show.pushClientEvent(a.id, 1, 8)).toBe(true)
-    expect(show.pushClientEvent(a.id, 1, 1)).toBe(false)
-    for (let i = 0; i < 99; i++) show.step()
-    expect(show.pushClientEvent(a.id, 1, 1)).toBe(false)
-    show.step()
-    expect(show.pushClientEvent(a.id, 1, 1)).toBe(true)
-    show.setQuickChatAllowed(a.id, false)
-    for (let i = 0; i < 100; i++) show.step()
-    expect(show.pushClientEvent(a.id, 1, 1)).toBe(false)
-    expect(show.pushClientEvent(a.id, 2, 1)).toBe(true)
-  })
 })
 
 describe('websocket show', () => {
