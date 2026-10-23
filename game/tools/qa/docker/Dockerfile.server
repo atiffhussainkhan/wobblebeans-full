@@ -1,0 +1,31 @@
+# Production show server. The foundation server typechecks in place and runs
+# through tsx, so the image keeps that runtime rather than a second compile.
+FROM node:22-bookworm-slim
+
+ARG CLIENT_VERSION=0.1.0
+ARG PROTOCOL=1
+LABEL org.opencontainers.image.title="wobblebeans-server" \
+      org.opencontainers.image.version="${CLIENT_VERSION}" \
+      org.wobblebeans.protocol="${PROTOCOL}"
+
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.33.4 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps ./apps
+COPY packages ./packages
+COPY tools ./tools
+COPY assets ./assets
+
+RUN pnpm install --frozen-lockfile --filter @wobblebeans/server... \
+  && chown -R node:node /app
+
+USER node
+ENV NODE_ENV=production
+ENV PORT=47221
+EXPOSE 47221
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||47221)+'/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["pnpm", "--filter", "@wobblebeans/server", "start"]

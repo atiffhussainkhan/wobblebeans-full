@@ -1,0 +1,7 @@
+{
+  "clientVersion": "0.1.0",
+  "protocolVersion": 1,
+  "serverImage": "wobblebeans-server",
+  "clientImage": "wobblebeans-client",
+  "tagPattern": "client-{version}-protocol-{protocol}"
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Wobblebeans expansion</title>
+    <style>
+      :root { font-size: 100%; color: #1f2140; }
+      body {
+        margin: 0;
+        background: #bfe6ff;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+      main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 16px;
+        align-items: flex-start;
+      }
+      h1, p, button { overflow-wrap: anywhere; max-width: 100%; }
+      h1 { font-size: 1.75rem; margin: 0; color: #e8336b; }
+      p { margin: 0; font-size: 1.125rem; font-weight: 700; background: #fffdf7; padding: 8px 12px; }
+      button {
+        min-width: 96px;
+        min-height: 96px;
+        height: auto;
+        white-space: normal;
+        font: inherit;
+        font-size: 1.125rem;
+        font-weight: 800;
+        background: #ffb627;
+        color: #1f2140;
+        border: 3px solid #1f2140;
+        border-radius: 24px;
+        padding: 12px 16px;
+      }
+      button:focus-visible {
+        outline: 4px solid #1f2140;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px #fffdf7;
+      }
+      .decor { animation: pulse 2s infinite; }
+      @keyframes pulse { from { opacity: 1; } to { opacity: 0.85; } }
+      @media (prefers-reduced-motion: reduce) {
+        .decor { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="hud">
+      <h1 data-i18n="brand.name"></h1>
+      <p data-i18n="status.friend"></p>
+      <p data-i18n="error.offline"></p>
+      <p data-i18n="banner.finish"></p>
+      <button type="button" data-i18n="controls.jump"></button>
+      <button type="button" data-i18n="controls.dive"></button>
+      <span class="decor" data-i18n="decor">...</span>
+    </main>
+  </body>
+</html>

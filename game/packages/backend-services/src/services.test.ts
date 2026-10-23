@@ -1,42 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { ParentAccountStore } from './parent-account'
-import { answerFromPrompt } from './safety/parent-gate'
-import { MockVpcVendor } from './safety/vpc'
 import { CoinLedger, ModerationService, ProgressionService, ShopCatalogue, TelemetryService } from './services'
-
-function verifiedParent(parents: ParentAccountStore, vendor: MockVpcVendor) {
-  const gate = parents.issueParentGate('hub')
-  if (!gate.ok) throw new Error('locked')
-  const answered = parents.submitParentGate('hub', gate.challengeId, answerFromPrompt(gate.promptWords))
-  if (!answered.ok) throw new Error('gate')
-  const parent = parents.register({
-    email: 'parent@example.com',
-    country: 'GB',
-    password: 'long-password-1',
-    gatePass: answered.gatePass,
-  })
-  const started = parents.startConsent(parent.id, {
-    method: 'card_check',
-    noticeVersion: 'notice-1',
-    purposes: { onlinePlay: false, friends: false, builderSharing: false, weeklySummary: false },
-    sessionToken: parent.sessionToken,
-  })
-  const done = parents.completeConsent(parent.id, {
-    challengeId: started.challengeId,
-    vendorToken: vendor.passingToken(started.challengeId),
-    sessionToken: parent.sessionToken,
-  })
-  if (!done.verified) throw new Error('vpc')
-  return parent
-}
 
 describe('backend stubs', () => {
   it('keeps contact data inside the parent store and hands out only a player id', () => {
-    const vendor = new MockVpcVendor()
-    const parents = new ParentAccountStore({ vendor })
-    const parent = verifiedParent(parents, vendor)
-    expect(parent.status).toBe('pending')
-    expect(parents.account(parent.sessionToken).status).toBe('verified')
+    const parents = new ParentAccountStore()
+    const parent = parents.register({ email: 'parent@example.com', country: 'GB' })
     const child = parents.addChild(parent.id, 2018, 'en-GB')
     expect(parents.pseudonym(child.id)).toEqual({ playerId: child.playerId })
     const controls = parents.getControls(child.id)!

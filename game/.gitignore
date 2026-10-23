@@ -7,3 +7,6 @@ coverage/
 uploads/
 *.tsbuildinfo
 .pnpm-store/
+playwright-report/
+test-results/
+blob-report/

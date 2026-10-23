@@ -1,5 +1,8 @@
 name: CI
 
+# pnpm check is lint, typecheck, unit tests (including the server tick budgets), and the child-safety scan.
+# The jobs below add Playwright, the client bundle budget, and production image builds.
+
 on:
   push:
   pull_request:
@@ -21,3 +24,60 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm safety
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wobblebeans/qa exec playwright install --with-deps chromium
+      - run: pnpm qa:e2e
+
+  client-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wobblebeans/client build
+      - run: pnpm exec vitest run tools/qa/src/release/checklist.test.ts tools/qa/src/perf/client-sim.test.ts
+
+  release-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: tools/qa/docker/Dockerfile.server
+          push: false
+          tags: wobblebeans-server:ci
+          build-args: |
+            CLIENT_VERSION=0.1.0
+            PROTOCOL=1
+      - name: Client image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: tools/qa/docker/Dockerfile.client
+          push: false
+          tags: wobblebeans-client:ci
+          build-args: |
+            CLIENT_VERSION=0.1.0
+            PROTOCOL=1
+            VITE_SERVER_URL=ws://127.0.0.1:47221
