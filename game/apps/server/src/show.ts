@@ -16,7 +16,6 @@ import {
   type SnapBean,
   type SocialGateState,
 } from '@wobblebeans/shared'
-import type { ShowFlow } from './flow/host'
 
 export interface ShowPlayer {
   id: number
@@ -45,11 +44,6 @@ export interface ShowStep {
  */
 export class Show {
   readonly players = new Map<number, ShowPlayer>()
-  /**
-   * Workstream 4 director. Absent on the gauntlet, so this file's input and
-   * snapshot behaviour stays as the foundation left it.
-   */
-  flow: ShowFlow | null = null
   private nextId = 1
   private readonly events: Uint8Array[] = []
 
@@ -88,25 +82,8 @@ export class Show {
   }
 
   removePlayer(id: number): void {
-    // Suspend for a reconnect token when a director is attached. Otherwise drop.
-    if (this.flow?.onSocketClosed(id)) return
     this.players.delete(id)
     this.world.removeBean(id)
-  }
-
-  /** Side channel for a reconnect token. Hello's byte layout cannot carry one. */
-  resume(token: string, playerId: string, showId: string): ShowPlayer | null {
-    const slot = this.flow?.resume(token, playerId, showId)
-    if (slot === undefined || slot === null) return null
-    return this.players.get(slot) ?? null
-  }
-
-  beanFinished(id: number): boolean {
-    return this.world.getState(id)?.finished ?? false
-  }
-
-  serverEvent(kind: number, subjectId: number, code: number, extra = 0): void {
-    this.events.push(encodeEvent(kind, subjectId, code, extra))
   }
 
   pushInputs(id: number, frames: InputFrame[]): void {
@@ -128,8 +105,6 @@ export class Show {
   }
 
   step(): ShowStep {
-    // Workstream 4: one director call. The input and snapshot code below is unchanged.
-    this.flow?.prepare(this)
     for (const player of this.players.values()) {
       while (player.queue.length > 0 && !ahead(player.queue[0]!.seq, player.ack)) {
         player.queue.shift()

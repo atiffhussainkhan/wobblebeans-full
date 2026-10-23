@@ -54,9 +54,6 @@ importers:
       '@dimforge/rapier3d-compat':
         specifier: ^0.17.3
         version: 0.17.3
-      '@wobblebeans/backend-services':
-        specifier: workspace:*
-        version: link:../../packages/backend-services
       '@wobblebeans/shared':
         specifier: workspace:*
         version: link:../../packages/shared

@@ -3,9 +3,18 @@
  * None of these records include a contact address, a birth year, or free text.
  */
 
-import type { MatchResult } from '@wobblebeans/shared'
-
-export type { MatchResult }
+export interface MatchResult {
+  showId: string
+  configVersion: string
+  region: string
+  participants: {
+    playerId: string
+    qualifiedRounds: number
+    wonFinal: boolean
+    xpEarned: number
+    coinsEarned: number
+  }[]
+}
 
 export interface ServiceHealth {
   name: string
@@ -51,10 +60,27 @@ export class SocialService {
   }
 }
 
-export { FleetService } from './fleet'
-export { MatchmakerService } from './matchmaker'
-export type { QueueTicket, TicketStatus, QueueRequest, Party, PracticeOffer } from './matchmaker'
-export type { ShowAllocation, ConnectToken } from './fleet'
+export interface QueueTicket {
+  id: string
+  playerIds: string[]
+  /** Chosen from ping beacons, never from a precise location. */
+  region: string | null
+  status: 'queued' | 'allocated' | 'cancelled'
+}
+
+export class MatchmakerService {
+  readonly name = 'matchmaker'
+  queue(_ticket: { playerIds: string[] }): QueueTicket {
+    return { id: 'unallocated', playerIds: _ticket.playerIds, region: null, status: 'queued' }
+  }
+}
+
+export class FleetService {
+  readonly name = 'fleet'
+  ready(): ServiceHealth {
+    return { name: this.name, ready: false }
+  }
+}
 
 export class ProgressionService {
   readonly name = 'progression'

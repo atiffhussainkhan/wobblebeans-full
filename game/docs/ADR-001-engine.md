@@ -54,7 +54,7 @@ The server owns poses, finish, respawn, and the shuttle. The client runs a secon
 ### What this slice deliberately leaves out
 
 - The eight MVP levels and the obstacle kit (workstream 3). The foundation course is `foundation-gauntlet`, a movement test, not a show level.
-- Show phases, matchmaking, bots, and reconnect now live in workstream 4 (`apps/server/src/flow/`, `apps/server/src/bots/`, `MatchmakerService`, `FleetService`). The round plug-in added in `packages/shared/src/show/` is additive: `Hello` through `Reject` are unchanged, and round flow uses `EventKind.RoundState` with numeric codes. Reconnect tokens are not a Hello field because that layout is frozen; `Show.resume` takes the token from a side channel. Protocol version stays 1.
+- Show phases, matchmaking, bots, reconnect tokens (60 s, max 2, D-09) (workstream 4).
 - Screens SC-01…SC-15 (workstream 5). The gauntlet HUD is a placeholder.
 - Audio playback (workstream 6). Event ids live in `packages/shared/src/audio/events.ts`. `blip()` is a no-op.
 - Persistence, the real gateway, and telemetry shipping (workstream 9).

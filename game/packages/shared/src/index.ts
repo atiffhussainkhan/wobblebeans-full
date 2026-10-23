@@ -36,25 +36,6 @@ export { NAME_ADJECTIVES, NAME_NOUNS, BEAN_COLOURS, formatDisplayName, nameForSl
 export type { GeneratedName } from './names/generator'
 export { AUDIO, GAMEPLAY_RELEVANT_AUDIO } from './audio/events'
 export type { AudioEventId } from './audio/events'
-export { qualifyQuota, roundHalfDown, mainShowQuotaPath } from './show/quota'
-export { SHOW_RULES } from './show/rules'
-export {
-  RoundStateCode,
-  SLOT_QUALIFY_PCT,
-  registerLevel,
-  registeredLevels,
-  slotForRound,
-} from './show/round'
-export type {
-  RoundStateCodeId,
-  RoundType,
-  ShowSlot,
-  EntrantSample,
-  RoundSample,
-  QualifyDecision,
-  LevelPlug,
-} from './show/round'
-export type { MatchResult } from './show/match-result'
 export {
   Msg,
   RejectReason,
